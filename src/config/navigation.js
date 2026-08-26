@@ -22,110 +22,112 @@ import {
 // Menu sidebar per role, dipakai DashboardLayout — dipisah dari halaman
 // masing-masing supaya bisa dipakai bareng oleh layar lintas-role
 // (Notification Center, Profile) yang tetap butuh app shell sesuai role login.
+// `label` di sini adalah KEY i18n (bukan teks final) — DashboardLayout yang
+// men-translate lewat t() saat render, supaya sidebar ikut ganti bahasa.
 export const NAV_MENU_GROUPS = {
   admin: [
     {
-      label: 'Menu Utama',
-      items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard' }],
+      label: 'navMenu.main',
+      items: [{ label: 'dashboard.title', icon: LayoutDashboard, to: '/admin/dashboard' }],
     },
     {
-      label: 'Data Master',
+      label: 'navMenu.dataMaster',
       items: [
-        { label: 'Data Siswa', icon: GraduationCap, to: '/admin/students' },
-        { label: 'Data Orang Tua/Wali', icon: Users, to: '/admin/parents' },
-        { label: 'Data Staff/Guru', icon: UserRound, to: '/admin/staff' },
-        { label: 'Kelas/Rombel', icon: School, to: '/admin/classrooms' },
-        { label: 'Tahun Ajaran & Kalender', icon: CalendarRange, to: '/admin/academic-years' },
+        { label: 'navMenu.students', icon: GraduationCap, to: '/admin/students' },
+        { label: 'navMenu.parents', icon: Users, to: '/admin/parents' },
+        { label: 'navMenu.staff', icon: UserRound, to: '/admin/staff' },
+        { label: 'navMenu.classrooms', icon: School, to: '/admin/classrooms' },
+        { label: 'navMenu.academicYears', icon: CalendarRange, to: '/admin/academic-years' },
       ],
     },
     {
-      label: 'Absensi & Jemput',
+      label: 'navMenu.attendancePickup',
       items: [
-        { label: 'Rekap Absensi Siswa', icon: UserCheck, to: '/admin/reports/attendance' },
-        { label: 'Rekap Absensi Staff', icon: UserCheck, to: '/admin/reports/hr' },
-        { label: 'Log Jemput Anak', icon: QrCode, to: '/admin/pickup-logs' },
-        { label: 'Pengaturan Cut-off', icon: Clock, to: '/admin/settings/dismissal-cutoff' },
+        { label: 'navMenu.studentAttendanceReport', icon: UserCheck, to: '/admin/reports/attendance' },
+        { label: 'navMenu.staffAttendanceReport', icon: UserCheck, to: '/admin/reports/hr' },
+        { label: 'navMenu.pickupLogs', icon: QrCode, to: '/admin/pickup-logs' },
+        { label: 'navMenu.dismissalCutoff', icon: Clock, to: '/admin/settings/dismissal-cutoff' },
       ],
     },
     {
-      label: 'HR',
-      items: [{ label: 'Persetujuan Cuti/Izin', icon: CalendarCheck, to: '/admin/leave-requests' }],
+      label: 'navMenu.hr',
+      items: [{ label: 'navMenu.leaveApproval', icon: CalendarCheck, to: '/admin/leave-requests' }],
     },
     {
-      label: 'Keuangan',
+      label: 'navMenu.finance',
       items: [
-        { label: 'Dashboard Keuangan', icon: Wallet, to: '/admin/finance/dashboard' },
-        { label: 'Daftar Invoice', icon: Receipt, to: '/admin/finance/invoices' },
-        { label: 'Pengaturan Biaya SPP', icon: Settings2, to: '/admin/settings/fee-structure' },
+        { label: 'navMenu.financeDashboard', icon: Wallet, to: '/admin/finance/dashboard' },
+        { label: 'navMenu.invoiceList', icon: Receipt, to: '/admin/finance/invoices' },
+        { label: 'navMenu.feeSettings', icon: Settings2, to: '/admin/settings/fee-structure' },
       ],
     },
     {
-      label: 'Sistem',
+      label: 'navMenu.system',
       items: [
-        { label: 'Audit Log', icon: FileClock, to: '/admin/audit-log' },
-        { label: 'Status Consent Data Anak', icon: ShieldCheck, to: '/admin/consent-status' },
+        { label: 'navMenu.auditLog', icon: FileClock, to: '/admin/audit-log' },
+        { label: 'navMenu.consentStatus', icon: ShieldCheck, to: '/admin/consent-status' },
       ],
     },
   ],
   guru: [
     {
-      label: 'Menu Utama',
-      items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/guru/dashboard' }],
+      label: 'navMenu.main',
+      items: [{ label: 'dashboard.title', icon: LayoutDashboard, to: '/guru/dashboard' }],
     },
     {
-      label: 'Absensi Siswa',
+      label: 'navMenu.studentAttendance',
       items: [
-        { label: 'Input Absensi', icon: UserCheck, to: '/guru/attendance' },
-        { label: 'Riwayat Absensi', icon: History, to: '/guru/attendance/history' },
+        { label: 'navMenu.attendanceInput', icon: UserCheck, to: '/guru/attendance' },
+        { label: 'navMenu.attendanceHistory', icon: History, to: '/guru/attendance/history' },
       ],
     },
     {
-      label: 'Jemput Anak',
-      items: [{ label: 'Verifikasi Jemput', icon: QrCode, to: '/guru/pickup/verify' }],
+      label: 'navMenu.pickupSection',
+      items: [{ label: 'navMenu.pickupVerify', icon: QrCode, to: '/guru/pickup/verify' }],
     },
     {
-      label: 'Kepegawaian',
+      label: 'navMenu.staffing',
       items: [
-        { label: 'Absensi Pribadi', icon: Camera, to: '/guru/attendance/self' },
-        { label: 'Cuti/Izin', icon: CalendarCheck, to: '/guru/leave-requests' },
+        { label: 'navMenu.selfAttendance', icon: Camera, to: '/guru/attendance/self' },
+        { label: 'navMenu.leaveRequest', icon: CalendarCheck, to: '/guru/leave-requests' },
       ],
     },
   ],
   staff: [
     {
-      label: 'Menu Utama',
-      items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/staff/dashboard' }],
+      label: 'navMenu.main',
+      items: [{ label: 'dashboard.title', icon: LayoutDashboard, to: '/staff/dashboard' }],
     },
     {
-      label: 'Jemput Anak',
-      items: [{ label: 'Verifikasi Jemput', icon: QrCode, to: '/staff/pickup/verify' }],
+      label: 'navMenu.pickupSection',
+      items: [{ label: 'navMenu.pickupVerify', icon: QrCode, to: '/staff/pickup/verify' }],
     },
     {
-      label: 'Kepegawaian',
+      label: 'navMenu.staffing',
       items: [
-        { label: 'Absensi Pribadi', icon: Camera, to: '/staff/attendance/self' },
-        { label: 'Cuti/Izin', icon: CalendarCheck, to: '/staff/leave-requests' },
+        { label: 'navMenu.selfAttendance', icon: Camera, to: '/staff/attendance/self' },
+        { label: 'navMenu.leaveRequest', icon: CalendarCheck, to: '/staff/leave-requests' },
       ],
     },
   ],
   orang_tua: [
     {
-      label: 'Menu Utama',
-      items: [{ label: 'Dashboard', icon: LayoutDashboard, to: '/ortu/dashboard' }],
+      label: 'navMenu.main',
+      items: [{ label: 'dashboard.title', icon: LayoutDashboard, to: '/ortu/dashboard' }],
     },
     {
-      label: 'Anak Saya',
+      label: 'navMenu.myChild',
       items: [
-        { label: 'Riwayat Absensi', icon: UserCheck, to: '/ortu/attendance' },
-        { label: 'Kelola Penjemput', icon: UsersRound, to: '/ortu/pickups' },
-        { label: 'Riwayat Jemput', icon: QrCode, to: '/ortu/pickup-history' },
+        { label: 'navMenu.attendanceHistory', icon: UserCheck, to: '/ortu/attendance' },
+        { label: 'navMenu.managePickups', icon: UsersRound, to: '/ortu/pickups' },
+        { label: 'navMenu.pickupHistory', icon: QrCode, to: '/ortu/pickup-history' },
       ],
     },
     {
-      label: 'Keuangan',
+      label: 'navMenu.finance',
       items: [
-        { label: 'Daftar Tagihan', icon: Receipt, to: '/ortu/invoices' },
-        { label: 'Riwayat Pembayaran', icon: Wallet, to: '/ortu/payments/history' },
+        { label: 'navMenu.billList', icon: Receipt, to: '/ortu/invoices' },
+        { label: 'navMenu.paymentHistory', icon: Wallet, to: '/ortu/payments/history' },
       ],
     },
   ],

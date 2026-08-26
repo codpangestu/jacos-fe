@@ -93,7 +93,7 @@ export default function DashboardLayout({
             <div key={group.label} className="mb-5">
               {!collapsed && (
                 <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-white/50 uppercase">
-                  {group.label}
+                  {t(group.label)}
                 </p>
               )}
               <ul className="flex flex-col gap-1">
@@ -104,13 +104,13 @@ export default function DashboardLayout({
                     <li key={item.to}>
                       <Link
                         to={item.to}
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? t(item.label) : undefined}
                         className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-colors ${
                           active ? 'bg-primary-300 text-white' : 'text-white/85 hover:bg-white/10'
                         }`}
                       >
                         <Icon size={20} className="shrink-0" />
-                        {!collapsed && <span className="truncate">{item.label}</span>}
+                        {!collapsed && <span className="truncate">{t(item.label)}</span>}
                       </Link>
                     </li>
                   )
