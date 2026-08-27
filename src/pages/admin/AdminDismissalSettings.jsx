@@ -9,7 +9,13 @@ import { apiGet, apiPut } from '../../lib/api'
 export default function AdminDismissalSettings() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [form, setForm] = useState({ cutoff_time: '15:00', attendance_edit_tolerance_days: 1 })
+  const [form, setForm] = useState({
+    cutoff_time: '15:00',
+    staff_check_in_deadline: '07:30',
+    attendance_edit_tolerance_days: 1,
+    pickup_qr_validity_days: '',
+    invoice_due_date_days: 10,
+  })
   const [success, setSuccess] = useState(false)
 
   const { data } = useQuery({
@@ -21,7 +27,10 @@ export default function AdminDismissalSettings() {
     if (data?.setting) {
       setForm({
         cutoff_time: data.setting.cutoff_time?.slice(0, 5) ?? '15:00',
+        staff_check_in_deadline: data.setting.staff_check_in_deadline?.slice(0, 5) ?? '07:30',
         attendance_edit_tolerance_days: data.setting.attendance_edit_tolerance_days ?? 1,
+        pickup_qr_validity_days: data.setting.pickup_qr_validity_days ?? '',
+        invoice_due_date_days: data.setting.invoice_due_date_days ?? 10,
       })
     }
   }, [data])
@@ -54,6 +63,17 @@ export default function AdminDismissalSettings() {
 
         <div>
           <FormField
+            label={t('dismissal.staffCheckInDeadline')}
+            htmlFor="staff_check_in_deadline"
+            type="time"
+            value={form.staff_check_in_deadline}
+            onChange={(e) => setForm({ ...form, staff_check_in_deadline: e.target.value })}
+          />
+          <p className="mt-1.5 text-xs text-text-secondary">{t('dismissal.staffCheckInDeadlineDescription')}</p>
+        </div>
+
+        <div>
+          <FormField
             label={t('dismissal.toleranceDays')}
             htmlFor="attendance_edit_tolerance_days"
             type="number"
@@ -63,6 +83,33 @@ export default function AdminDismissalSettings() {
             onChange={(e) => setForm({ ...form, attendance_edit_tolerance_days: e.target.value })}
           />
           <p className="mt-1.5 text-xs text-text-secondary">{t('dismissal.toleranceDescription')}</p>
+        </div>
+
+        <div>
+          <FormField
+            label={t('dismissal.pickupQrValidityDays')}
+            htmlFor="pickup_qr_validity_days"
+            type="number"
+            min={1}
+            max={365}
+            placeholder={t('dismissal.pickupQrValidityPlaceholder')}
+            value={form.pickup_qr_validity_days}
+            onChange={(e) => setForm({ ...form, pickup_qr_validity_days: e.target.value })}
+          />
+          <p className="mt-1.5 text-xs text-text-secondary">{t('dismissal.pickupQrValidityDescription')}</p>
+        </div>
+
+        <div>
+          <FormField
+            label={t('dismissal.invoiceDueDateDays')}
+            htmlFor="invoice_due_date_days"
+            type="number"
+            min={1}
+            max={60}
+            value={form.invoice_due_date_days}
+            onChange={(e) => setForm({ ...form, invoice_due_date_days: e.target.value })}
+          />
+          <p className="mt-1.5 text-xs text-text-secondary">{t('dismissal.invoiceDueDateDescription')}</p>
         </div>
 
         <button

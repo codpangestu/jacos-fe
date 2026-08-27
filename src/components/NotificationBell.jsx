@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { apiGet } from '../lib/api'
+import NotificationDrawer from './NotificationDrawer'
 
-/** Bell icon topbar dengan badge unread count (FR-FE-1.5 dst) — polling ringan, push delivery beneran belum aktif. */
+/** Bell icon topbar dengan badge unread count (FR-FE-1.5 dst) — klik buka drawer notifikasi dari sisi kanan. */
 export default function NotificationBell() {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
   const { data } = useQuery({
     queryKey: ['notifications', 'bell'],
     queryFn: () => apiGet('/api/notifications'),
@@ -16,17 +18,22 @@ export default function NotificationBell() {
   const unread = data?.unread_count ?? 0
 
   return (
-    <Link
-      to="/notifications"
-      className="relative rounded-full p-2 text-text-secondary hover:bg-primary-300/10"
-      aria-label={t('nav.notifications')}
-    >
-      <Bell size={20} />
-      {unread > 0 && (
-        <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white">
-          {unread > 9 ? '9+' : unread}
-        </span>
-      )}
-    </Link>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="relative rounded-full p-2 text-text-secondary hover:bg-primary-300/10"
+        aria-label={t('nav.notifications')}
+      >
+        <Bell size={20} />
+        {unread > 0 && (
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white">
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </button>
+
+      <NotificationDrawer open={open} onClose={() => setOpen(false)} />
+    </>
   )
 }

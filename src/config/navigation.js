@@ -7,6 +7,7 @@ import {
   GraduationCap,
   History,
   LayoutDashboard,
+  Megaphone,
   QrCode,
   Receipt,
   School,
@@ -44,8 +45,10 @@ export const NAV_MENU_GROUPS = {
       label: 'navMenu.attendancePickup',
       items: [
         { label: 'navMenu.studentAttendanceReport', icon: UserCheck, to: '/admin/reports/attendance' },
+        { label: 'navMenu.attendanceSubmissionStatus', icon: CalendarCheck, to: '/admin/attendance/submission-status' },
         { label: 'navMenu.staffAttendanceReport', icon: UserCheck, to: '/admin/reports/hr' },
         { label: 'navMenu.pickupLogs', icon: QrCode, to: '/admin/pickup-logs' },
+        { label: 'navMenu.pickupApprovals', icon: ShieldCheck, to: '/admin/pickup-approvals' },
         { label: 'navMenu.dismissalCutoff', icon: Clock, to: '/admin/settings/dismissal-cutoff' },
       ],
     },
@@ -66,6 +69,7 @@ export const NAV_MENU_GROUPS = {
       items: [
         { label: 'navMenu.auditLog', icon: FileClock, to: '/admin/audit-log' },
         { label: 'navMenu.consentStatus', icon: ShieldCheck, to: '/admin/consent-status' },
+        { label: 'navMenu.announcements', icon: Megaphone, to: '/admin/announcements' },
       ],
     },
   ],

@@ -5,10 +5,12 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import StatCard from '../../components/dashboard/StatCard'
 import ProgressCard from '../../components/dashboard/ProgressCard'
 import TableCard from '../../components/dashboard/TableCard'
+import ListCard from '../../components/dashboard/ListCard'
+import ActivityTimelineCard from '../../components/dashboard/ActivityTimelineCard'
 import HighlightCard from '../../components/dashboard/HighlightCard'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet } from '../../lib/api'
-import { formatCurrency, formatDateLong, todayInputValue } from '../../lib/format'
+import { formatCurrency, formatDateLong, formatDateTime, todayInputValue } from '../../lib/format'
 
 const menuGroups = NAV_MENU_GROUPS.admin
 
@@ -56,6 +58,18 @@ export default function AdminDashboard() {
     queryKey: ['admin', 'finance', 'dashboard'],
     queryFn: () => apiGet('/api/admin/finance/dashboard'),
   })
+
+  const { data: announcementsData } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => apiGet('/api/announcements'),
+  })
+  const announcements = announcementsData?.announcements ?? []
+
+  const { data: auditData } = useQuery({
+    queryKey: ['admin', 'audit-log', 'recent'],
+    queryFn: () => apiGet('/api/admin/audit-log'),
+  })
+  const recentActivity = auditData?.data ?? []
 
   const distribution = ['hadir', 'izin', 'sakit', 'alpa'].map((code) => ({
     label: t(`status.${code}`),
@@ -112,6 +126,15 @@ export default function AdminDashboard() {
               ctaTo="/admin/finance/dashboard"
             />
           )}
+          <ActivityTimelineCard
+            title={t('dashboard.recentActivity')}
+            viewAllTo="/admin/audit-log"
+            items={recentActivity.slice(0, 5).map((a) => ({
+              time: formatDateTime(a.created_at),
+              who: a.user?.name ?? '-',
+              action: a.action,
+            }))}
+          />
         </>
       }
     >
@@ -144,6 +167,18 @@ export default function AdminDashboard() {
           }))}
         />
       </div>
+
+      {announcements.length > 0 && (
+        <ListCard
+          title={t('announcements.dashboardTitle')}
+          viewAllTo="/admin/announcements"
+          items={announcements.map((a) => ({
+            initials: a.title.slice(0, 2).toUpperCase(),
+            primary: a.title,
+            secondary: a.body,
+          }))}
+        />
+      )}
     </DashboardLayout>
   )
 }

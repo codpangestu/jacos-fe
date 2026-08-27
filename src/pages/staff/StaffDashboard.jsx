@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Camera, Clock, QrCode } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import StatCard from '../../components/dashboard/StatCard'
+import ListCard from '../../components/dashboard/ListCard'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet } from '../../lib/api'
 import { formatDateLong, formatTime } from '../../lib/format'
@@ -16,6 +17,12 @@ export default function StaffDashboard() {
     queryKey: ['staff', 'attendance', 'today'],
     queryFn: () => apiGet('/api/staff/attendance/today'),
   })
+
+  const { data: announcementsData } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => apiGet('/api/announcements'),
+  })
+  const announcements = announcementsData?.announcements ?? []
 
   const attendance = data?.attendance
   const statusValue = !attendance
@@ -70,6 +77,17 @@ export default function StaffDashboard() {
           {t('dashboard.pickupShortcutCta')}
         </span>
       </button>
+
+      {announcements.length > 0 && (
+        <ListCard
+          title={t('announcements.dashboardTitle')}
+          items={announcements.map((a) => ({
+            initials: a.title.slice(0, 2).toUpperCase(),
+            primary: a.title,
+            secondary: a.body,
+          }))}
+        />
+      )}
     </DashboardLayout>
   )
 }

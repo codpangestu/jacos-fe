@@ -39,6 +39,12 @@ export default function OrtuDashboard() {
   })
   const activeInvoice = (invoicesData?.invoices ?? [])[0]
 
+  const { data: announcementsData } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => apiGet('/api/announcements'),
+  })
+  const announcements = announcementsData?.announcements ?? []
+
   if (!activeChild) return null
 
   return (
@@ -89,6 +95,17 @@ export default function OrtuDashboard() {
           })}
           ctaLabel={t('ortu.payNow')}
           ctaTo={`/ortu/invoices/${activeInvoice.id}`}
+        />
+      )}
+
+      {announcements.length > 0 && (
+        <ListCard
+          title={t('announcements.dashboardTitle')}
+          items={announcements.map((a) => ({
+            initials: a.title.slice(0, 2).toUpperCase(),
+            primary: a.title,
+            secondary: a.body,
+          }))}
         />
       )}
     </DashboardLayout>

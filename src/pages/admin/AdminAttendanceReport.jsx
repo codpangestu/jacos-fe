@@ -8,6 +8,7 @@ import FilterBar from '../../components/ui/FilterBar'
 import ExportButton from '../../components/ui/ExportButton'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { apiGet } from '../../lib/api'
+import { downloadCsv } from '../../lib/exportCsv'
 import { todayInputValue } from '../../lib/format'
 
 export default function AdminAttendanceReport() {
@@ -28,6 +29,16 @@ export default function AdminAttendanceReport() {
   })
 
   const students = data?.students ?? []
+  const classroomName = classrooms.find((c) => String(c.id) === String(classroomId))?.name ?? classroomId
+
+  function handleExport() {
+    if (!classroomId) return
+    downloadCsv(
+      `rekap-absensi-${classroomName}-${date}.csv`,
+      [t('dashboard.name'), t('common.status'), t('common.note')],
+      students.map((s) => [s.name, s.status ? t(`status.${s.status}`) : '-', s.note || '-'])
+    )
+  }
 
   return (
     <DashboardLayout menuGroups={NAV_MENU_GROUPS.admin} pageTitle={t('attendance.reportTitle')}>
@@ -43,7 +54,7 @@ export default function AdminAttendanceReport() {
           },
           { key: 'date', type: 'date', label: t('common.date'), value: date, onChange: setDate },
         ]}
-        trailing={<ExportButton />}
+        trailing={<ExportButton onClick={handleExport} />}
       />
 
       {!classroomId ? (

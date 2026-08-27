@@ -3,10 +3,11 @@ import { clearUser } from './auth'
 const API_URL = import.meta.env.VITE_API_URL
 
 export class ApiError extends Error {
-  constructor(message, status, errors) {
+  constructor(message, status, errors, data) {
     super(message)
     this.status = status
     this.errors = errors
+    this.data = data
   }
 }
 
@@ -75,7 +76,7 @@ async function request(method, path, { json, form, params } = {}) {
     const message = data?.errors
       ? Object.values(data.errors).flat().join(' ')
       : (data?.message ?? 'Terjadi kesalahan. Coba lagi.')
-    throw new ApiError(message, res.status, data?.errors)
+    throw new ApiError(message, res.status, data?.errors, data)
   }
 
   return data
@@ -95,6 +96,35 @@ export const apiPatchForm = (path, form) => {
 export const apiPutForm = (path, form) => {
   form.append('_method', 'PUT')
   return request('POST', path, { form })
+}
+
+/** Unduh file dari endpoint auth (mis. export CSV) — beda dari request() krn respons bukan JSON. */
+export async function downloadFile(path, params, fallbackFilename) {
+  await ensureCsrfCookie()
+
+  const res = await fetch(`${API_URL}${path}${buildQuery(params)}`, {
+    credentials: 'include',
+    headers: { 'X-XSRF-TOKEN': getCookie('XSRF-TOKEN') ?? '' },
+  })
+
+  if (!res.ok) {
+    const data = await parseJsonSafe(res)
+    throw new ApiError(data?.message ?? 'Gagal mengunduh file.', res.status)
+  }
+
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const match = /filename="?([^";]+)"?/i.exec(disposition)
+  const filename = match?.[1] ?? fallbackFilename
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 export function storageUrl(path) {

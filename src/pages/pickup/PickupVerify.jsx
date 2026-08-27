@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
-import { AlertTriangle, Camera, CheckCircle2, QrCode, Search, UserRound } from 'lucide-react'
+import { AlertTriangle, Camera, CheckCircle2, MessageCircleWarning, QrCode, Search, UserRound } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet, apiPost, storageUrl, ApiError } from '../../lib/api'
@@ -54,6 +54,9 @@ function ScanPanel() {
   const [scanResult, setScanResult] = useState(null)
   const [scanError, setScanError] = useState(null)
   const [confirmed, setConfirmed] = useState(false)
+  const [showEscalate, setShowEscalate] = useState(false)
+  const [escalateNote, setEscalateNote] = useState('')
+  const [escalated, setEscalated] = useState(false)
 
   const scanMutation = useMutation({
     mutationFn: (token) => apiPost('/api/verify/pickup/scan', { token }),
@@ -62,7 +65,11 @@ function ScanPanel() {
       setScanError(null)
     },
     onError: (err) => {
-      setScanError(err instanceof ApiError ? err.message : t('pickup.notRegistered'))
+      setScanError(
+        err instanceof ApiError
+          ? { message: err.message, reason: err.data?.reason, student: err.data?.student }
+          : { message: t('pickup.notRegistered') },
+      )
       setScanResult(null)
     },
   })
@@ -70,6 +77,11 @@ function ScanPanel() {
   const confirmMutation = useMutation({
     mutationFn: () => apiPost(`/api/verify/pickup/${scanResult.authorized_pickup_id}/confirm`),
     onSuccess: () => setConfirmed(true),
+  })
+
+  const escalateMutation = useMutation({
+    mutationFn: () => apiPost('/api/verify/pickup/escalate', { student_id: scanError.student.id, note: escalateNote }),
+    onSuccess: () => setEscalated(true),
   })
 
   useEffect(() => {
@@ -97,8 +109,13 @@ function ScanPanel() {
     setScanResult(null)
     setScanError(null)
     setConfirmed(false)
+    setShowEscalate(false)
+    setEscalateNote('')
+    setEscalated(false)
     scanMutation.reset()
     confirmMutation.reset()
+    escalateMutation.reset()
+    scannerRef.current?.start()
   }
 
   return (
@@ -121,15 +138,76 @@ function ScanPanel() {
           </p>
         )}
 
-        {scanError && (
+        {scanError && !escalated && (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <AlertTriangle size={32} className="text-danger-500" />
-            <p className="font-semibold text-danger-500">{t('pickup.notRegistered')}</p>
+            <p className="font-semibold text-danger-500">{scanError.message || t('pickup.notRegistered')}</p>
             <p className="text-sm text-text-secondary">{t('pickup.notRegisteredHint')}</p>
+
+            {!showEscalate ? (
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {scanError.student && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEscalate(true)}
+                    className="flex items-center gap-1.5 rounded-xl bg-danger-500 px-4 py-2 text-sm font-semibold text-white hover:bg-danger-500/90"
+                  >
+                    <MessageCircleWarning size={16} />
+                    {t('pickup.contactAdmin')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-primary hover:bg-bg-page"
+                >
+                  {t('pickup.scanAnother')}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 w-full space-y-2 text-left">
+                <textarea
+                  value={escalateNote}
+                  onChange={(e) => setEscalateNote(e.target.value)}
+                  placeholder={t('pickup.escalateNotePlaceholder')}
+                  rows={3}
+                  className="w-full rounded-xl border border-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary-300 focus:outline-none"
+                />
+                {escalateMutation.isError && (
+                  <p className="rounded-lg bg-danger-500/10 px-3 py-2 text-sm text-danger-500">
+                    {escalateMutation.error.message}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!escalateNote || escalateMutation.isPending}
+                    onClick={() => escalateMutation.mutate()}
+                    className="flex-1 rounded-xl bg-danger-500 py-2.5 text-sm font-semibold text-white hover:bg-danger-500/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {escalateMutation.isPending ? t('common.processing') : t('pickup.escalateSubmit')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEscalate(false)}
+                    className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text-primary hover:bg-bg-page"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {scanError && escalated && (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <CheckCircle2 size={32} className="text-success-500" />
+            <p className="font-semibold text-success-500">{t('pickup.escalateSuccess')}</p>
             <button
               type="button"
               onClick={reset}
-              className="mt-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-primary hover:bg-bg-page"
+              className="mt-2 rounded-xl bg-primary-300 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-400"
             >
               {t('pickup.scanAnother')}
             </button>

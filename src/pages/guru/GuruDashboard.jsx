@@ -5,6 +5,7 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import StatCard from '../../components/dashboard/StatCard'
 import ProgressCard from '../../components/dashboard/ProgressCard'
 import TableCard from '../../components/dashboard/TableCard'
+import ListCard from '../../components/dashboard/ListCard'
 import HighlightCard from '../../components/dashboard/HighlightCard'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet } from '../../lib/api'
@@ -38,6 +39,12 @@ export default function GuruDashboard() {
     queryFn: () => apiGet('/api/students/not-picked-up'),
     enabled: !!classroom,
   })
+
+  const { data: announcementsData } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => apiGet('/api/announcements'),
+  })
+  const announcements = announcementsData?.announcements ?? []
 
   const students = attendanceData?.students ?? []
   const totalStudents = students.length
@@ -108,6 +115,17 @@ export default function GuruDashboard() {
         <CalendarCheck size={16} />
         <span>{t('dashboard.leaveReminder')}</span>
       </div>
+
+      {announcements.length > 0 && (
+        <ListCard
+          title={t('announcements.dashboardTitle')}
+          items={announcements.map((a) => ({
+            initials: a.title.slice(0, 2).toUpperCase(),
+            primary: a.title,
+            secondary: a.body,
+          }))}
+        />
+      )}
     </DashboardLayout>
   )
 }

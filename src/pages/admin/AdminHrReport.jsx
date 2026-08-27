@@ -9,7 +9,7 @@ import FilterBar from '../../components/ui/FilterBar'
 import ExportButton from '../../components/ui/ExportButton'
 import FormField from '../../components/ui/FormField'
 import Modal from '../../components/ui/Modal'
-import { apiGet, apiPatch } from '../../lib/api'
+import { apiGet, apiPatch, downloadFile } from '../../lib/api'
 import { formatDate, formatTime, toDateTimeLocalValue } from '../../lib/format'
 
 export default function AdminHrReport() {
@@ -66,7 +66,11 @@ export default function AdminHrReport() {
             ],
           },
         ]}
-        trailing={<ExportButton />}
+        trailing={
+          <ExportButton
+            onClick={() => downloadFile('/api/admin/staff-attendances/export', { staff_id: staffId || undefined }, 'rekap-absensi-staff.csv')}
+          />
+        }
       />
 
       <DataTable
@@ -81,7 +85,19 @@ export default function AdminHrReport() {
         columns={[
           { key: 'staff', label: t('staff.name'), render: (row) => row.staff?.name },
           { key: 'date', label: t('common.date'), render: (row) => formatDate(row.date) },
-          { key: 'check_in', label: t('hr.checkIn'), render: (row) => (row.check_in_time ? formatTime(row.check_in_time) : '-') },
+          {
+            key: 'check_in',
+            label: t('hr.checkIn'),
+            render: (row) =>
+              row.check_in_time ? (
+                <span className={row.is_late ? 'font-semibold text-danger-500' : ''}>
+                  {formatTime(row.check_in_time)}
+                  {row.is_late && <span className="ml-1.5 text-xs">({t('hr.late')})</span>}
+                </span>
+              ) : (
+                '-'
+              ),
+          },
           { key: 'check_out', label: t('hr.checkOut'), render: (row) => (row.check_out_time ? formatTime(row.check_out_time) : '-') },
           {
             key: 'corrected',

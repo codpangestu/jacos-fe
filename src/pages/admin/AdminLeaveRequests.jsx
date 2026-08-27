@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, X } from 'lucide-react'
+import { AlertTriangle, Check, MessageSquareWarning, X } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import DataTable from '../../components/ui/DataTable'
@@ -16,7 +16,7 @@ export default function AdminLeaveRequests() {
   const queryClient = useQueryClient()
   const [status, setStatus] = useState('pending')
   const [page, setPage] = useState(1)
-  const [rejecting, setRejecting] = useState(null)
+  const [noteAction, setNoteAction] = useState(null) // { row, status: 'rejected' | 'revision_requested' }
   const [note, setNote] = useState('')
 
   const { data, isLoading } = useQuery({
@@ -28,7 +28,7 @@ export default function AdminLeaveRequests() {
     mutationFn: ({ id, reviewStatus, review_note }) =>
       apiPatch(`/api/admin/leave-requests/${id}/review`, { status: reviewStatus, review_note }),
     onSuccess: () => {
-      setRejecting(null)
+      setNoteAction(null)
       setNote('')
       queryClient.invalidateQueries({ queryKey: ['admin', 'leave-requests'] })
     },
@@ -48,6 +48,7 @@ export default function AdminLeaveRequests() {
               { value: 'pending', label: t('status.pending') },
               { value: 'approved', label: t('status.approved') },
               { value: 'rejected', label: t('status.rejected') },
+              { value: 'revision_requested', label: t('status.revision_requested') },
               { value: '', label: t('common.all') },
             ],
           },
@@ -69,7 +70,16 @@ export default function AdminLeaveRequests() {
           {
             key: 'period',
             label: `${t('leave.startDate')} - ${t('leave.endDate')}`,
-            render: (row) => `${formatDate(row.start_date)} - ${formatDate(row.end_date)}`,
+            render: (row) => (
+              <span className="flex items-center gap-1.5">
+                {formatDate(row.start_date)} - {formatDate(row.end_date)}
+                {row.is_long_leave && (
+                  <span title={t('leave.longLeaveHint')}>
+                    <AlertTriangle size={14} className="text-accent-500" />
+                  </span>
+                )}
+              </span>
+            ),
           },
           { key: 'reason', label: t('leave.reason') },
           { key: 'status', label: t('common.status'), render: (row) => <StatusBadge code={row.status} /> },
@@ -89,7 +99,15 @@ export default function AdminLeaveRequests() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setRejecting(row)}
+                    onClick={() => setNoteAction({ row, status: 'revision_requested' })}
+                    className="flex items-center gap-1 rounded-lg bg-accent-500/12 px-2.5 py-1.5 text-xs font-semibold text-accent-500 hover:bg-accent-500/20"
+                  >
+                    <MessageSquareWarning size={13} />
+                    {t('leave.requestRevision')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNoteAction({ row, status: 'rejected' })}
                     className="flex items-center gap-1 rounded-lg bg-danger-500/12 px-2.5 py-1.5 text-xs font-semibold text-danger-500 hover:bg-danger-500/20"
                   >
                     <X size={13} />
@@ -104,18 +122,24 @@ export default function AdminLeaveRequests() {
       />
 
       <Modal
-        open={!!rejecting}
-        onClose={() => setRejecting(null)}
-        title={t('leave.reject')}
-        description={rejecting?.staff?.name}
+        open={!!noteAction}
+        onClose={() => setNoteAction(null)}
+        title={noteAction?.status === 'rejected' ? t('leave.reject') : t('leave.requestRevision')}
+        description={noteAction?.row?.staff?.name}
         footer={
           <button
             type="button"
             disabled={!note || reviewMutation.isPending}
-            onClick={() => reviewMutation.mutate({ id: rejecting.id, reviewStatus: 'rejected', review_note: note })}
-            className="rounded-xl bg-danger-500 px-5 py-2 text-sm font-semibold text-white hover:bg-danger-500/90 disabled:opacity-50"
+            onClick={() => reviewMutation.mutate({ id: noteAction.row.id, reviewStatus: noteAction.status, review_note: note })}
+            className={`rounded-xl px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+              noteAction?.status === 'rejected' ? 'bg-danger-500 hover:bg-danger-500/90' : 'bg-accent-500 hover:bg-accent-500/90'
+            }`}
           >
-            {reviewMutation.isPending ? t('common.processing') : t('leave.reject')}
+            {reviewMutation.isPending
+              ? t('common.processing')
+              : noteAction?.status === 'rejected'
+                ? t('leave.reject')
+                : t('leave.requestRevision')}
           </button>
         }
       >

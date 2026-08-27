@@ -4,12 +4,13 @@ import Homepage from './pages/Homepage'
 import Login from './pages/auth/Login'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
-import NotificationCenter from './pages/common/NotificationCenter'
 import Profile from './pages/common/Profile'
 import ConsentChild from './pages/common/ConsentChild'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminAttendanceReport from './pages/admin/AdminAttendanceReport'
+import AdminAttendanceSubmissionStatus from './pages/admin/AdminAttendanceSubmissionStatus'
 import AdminPickupLogs from './pages/admin/AdminPickupLogs'
+import AdminPickupApprovals from './pages/admin/AdminPickupApprovals'
 import AdminStaff from './pages/admin/AdminStaff'
 import AdminHrReport from './pages/admin/AdminHrReport'
 import AdminLeaveRequests from './pages/admin/AdminLeaveRequests'
@@ -17,12 +18,14 @@ import AdminFeeStructure from './pages/admin/AdminFeeStructure'
 import AdminFinanceDashboard from './pages/admin/AdminFinanceDashboard'
 import AdminInvoices from './pages/admin/AdminInvoices'
 import AdminStudents from './pages/admin/AdminStudents'
+import AdminStudentDetail from './pages/admin/AdminStudentDetail'
 import AdminParents from './pages/admin/AdminParents'
 import AdminClassrooms from './pages/admin/AdminClassrooms'
 import AdminAcademicYears from './pages/admin/AdminAcademicYears'
 import AdminDismissalSettings from './pages/admin/AdminDismissalSettings'
 import AdminAuditLog from './pages/admin/AdminAuditLog'
 import AdminConsentStatus from './pages/admin/AdminConsentStatus'
+import AdminAnnouncements from './pages/admin/AdminAnnouncements'
 import GuruDashboard from './pages/guru/GuruDashboard'
 import GuruAttendance from './pages/guru/GuruAttendance'
 import GuruAttendanceHistory from './pages/guru/GuruAttendanceHistory'
@@ -54,12 +57,13 @@ export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/forgot-password', element: <ForgotPassword /> },
   { path: '/reset-password', element: <ResetPassword /> },
-  { path: '/notifications', element: authed(<NotificationCenter />) },
   { path: '/account/profile', element: authed(<Profile />) },
   { path: '/consent/child', element: authed(<ConsentChild />) },
   { path: '/admin/dashboard', element: admin(<AdminDashboard />) },
   { path: '/admin/reports/attendance', element: admin(<AdminAttendanceReport />) },
+  { path: '/admin/attendance/submission-status', element: admin(<AdminAttendanceSubmissionStatus />) },
   { path: '/admin/pickup-logs', element: admin(<AdminPickupLogs />) },
+  { path: '/admin/pickup-approvals', element: admin(<AdminPickupApprovals />) },
   { path: '/admin/staff', element: admin(<AdminStaff />) },
   { path: '/admin/reports/hr', element: admin(<AdminHrReport />) },
   { path: '/admin/leave-requests', element: admin(<AdminLeaveRequests />) },
@@ -67,12 +71,14 @@ export const router = createBrowserRouter([
   { path: '/admin/finance/dashboard', element: admin(<AdminFinanceDashboard />) },
   { path: '/admin/finance/invoices', element: admin(<AdminInvoices />) },
   { path: '/admin/students', element: admin(<AdminStudents />) },
+  { path: '/admin/students/:id', element: admin(<AdminStudentDetail />) },
   { path: '/admin/parents', element: admin(<AdminParents />) },
   { path: '/admin/classrooms', element: admin(<AdminClassrooms />) },
   { path: '/admin/academic-years', element: admin(<AdminAcademicYears />) },
   { path: '/admin/settings/dismissal-cutoff', element: admin(<AdminDismissalSettings />) },
   { path: '/admin/audit-log', element: admin(<AdminAuditLog />) },
   { path: '/admin/consent-status', element: admin(<AdminConsentStatus />) },
+  { path: '/admin/announcements', element: admin(<AdminAnnouncements />) },
   { path: '/guru/dashboard', element: guru(<GuruDashboard />) },
   { path: '/guru/attendance', element: guru(<GuruAttendance />) },
   { path: '/guru/attendance/history', element: guru(<GuruAttendanceHistory />) },

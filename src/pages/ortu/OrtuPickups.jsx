@@ -8,8 +8,10 @@ import { NAV_MENU_GROUPS } from '../../config/navigation'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
 import FormField from '../../components/ui/FormField'
 import Modal from '../../components/ui/Modal'
+import StatusBadge from '../../components/ui/StatusBadge'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { apiDelete, apiGet, apiPostForm, storageUrl } from '../../lib/api'
+import { formatDate } from '../../lib/format'
 
 const EMPTY_FORM = { name: '', relationship: '', photo: null }
 
@@ -94,7 +96,11 @@ export default function OrtuPickups() {
                   <p className="truncate text-sm font-semibold text-text-primary">{p.name}</p>
                   <p className="truncate text-xs text-text-secondary">{p.relationship}</p>
                 </div>
+                <StatusBadge code={p.status} />
               </div>
+              {p.status === 'active' && p.valid_until && (
+                <p className="mt-2 text-xs text-text-secondary">{t('ortu.validUntil', { date: formatDate(p.valid_until) })}</p>
+              )}
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
@@ -157,11 +163,22 @@ export default function OrtuPickups() {
       </Modal>
 
       <Modal open={!!viewingQr} onClose={() => setViewingQr(null)} title={t('ortu.qrTitle', { name: viewingQr?.name })}>
-        <p className="text-sm text-text-secondary">{t('ortu.qrDescription')}</p>
-        {viewingQr && (
-          <div className="flex justify-center rounded-xl bg-white p-6">
-            <QRCodeSVG value={viewingQr.qr_token} size={220} />
-          </div>
+        {viewingQr?.status === 'active' ? (
+          <>
+            <p className="text-sm text-text-secondary">{t('ortu.qrDescription')}</p>
+            <div className="flex justify-center rounded-xl bg-white p-6">
+              <QRCodeSVG value={viewingQr.qr_token} size={220} />
+            </div>
+            {viewingQr.valid_until && (
+              <p className="text-center text-xs text-text-secondary">{t('ortu.validUntil', { date: formatDate(viewingQr.valid_until) })}</p>
+            )}
+          </>
+        ) : (
+          <p className="rounded-xl bg-accent-500/10 px-4 py-3 text-sm text-text-secondary">
+            {viewingQr?.status === 'pending_approval'
+              ? t('ortu.qrNotReady')
+              : t('ortu.qrNotActive', { status: t(`status.${viewingQr?.status}`) })}
+          </p>
         )}
       </Modal>
 

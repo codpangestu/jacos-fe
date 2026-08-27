@@ -12,6 +12,7 @@ export const STATUS_TONE = {
   pending: 'accent',
   approved: 'success',
   rejected: 'danger',
+  revision_requested: 'accent',
   qr: 'primary',
   manual: 'navy',
   active: 'success',
@@ -19,6 +20,13 @@ export const STATUS_TONE = {
   settlement: 'success',
   failed: 'danger',
   expired: 'navy',
+  pending_approval: 'accent',
+  revoked: 'danger',
+  not_started: 'danger',
+  partial: 'accent',
+  complete: 'success',
+  holiday: 'navy',
+  no_students: 'navy',
 }
 
 export function statusTone(code) {
