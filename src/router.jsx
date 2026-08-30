@@ -30,6 +30,7 @@ import GuruDashboard from './pages/guru/GuruDashboard'
 import GuruAttendance from './pages/guru/GuruAttendance'
 import GuruAttendanceHistory from './pages/guru/GuruAttendanceHistory'
 import OrtuDashboard from './pages/ortu/OrtuDashboard'
+import OrtuChildProfile from './pages/ortu/OrtuChildProfile'
 import SelectChild from './pages/ortu/SelectChild'
 import OrtuAttendance from './pages/ortu/OrtuAttendance'
 import OrtuPickups from './pages/ortu/OrtuPickups'
@@ -87,6 +88,7 @@ export const router = createBrowserRouter([
   { path: '/guru/leave-requests', element: guru(<LeaveRequests />) },
   { path: '/ortu/select-child', element: <OrtuGuard requireChildSelection={false}><SelectChild /></OrtuGuard> },
   { path: '/ortu/dashboard', element: ortu(<OrtuDashboard />) },
+  { path: '/ortu/profile-anak', element: ortu(<OrtuChildProfile />) },
   { path: '/ortu/attendance', element: ortu(<OrtuAttendance />) },
   { path: '/ortu/pickups', element: ortu(<OrtuPickups />) },
   { path: '/ortu/pickup-history', element: ortu(<OrtuPickupHistory />) },

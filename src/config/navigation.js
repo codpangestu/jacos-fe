@@ -122,6 +122,7 @@ export const NAV_MENU_GROUPS = {
     {
       label: 'navMenu.myChild',
       items: [
+        { label: 'navMenu.childProfile', icon: UserRound, to: '/ortu/profile-anak' },
         { label: 'navMenu.attendanceHistory', icon: UserCheck, to: '/ortu/attendance' },
         { label: 'navMenu.managePickups', icon: UsersRound, to: '/ortu/pickups' },
         { label: 'navMenu.pickupHistory', icon: QrCode, to: '/ortu/pickup-history' },

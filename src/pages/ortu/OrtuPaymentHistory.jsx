@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Receipt } from 'lucide-react'
+import { CheckCircle2, Receipt, Wallet } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
+import StatCard from '../../components/dashboard/StatCard'
 import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
@@ -21,6 +22,9 @@ export default function OrtuPaymentHistory() {
     queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/invoices`, { status: 'lunas' }),
     enabled: !!activeChild,
   })
+  const allPaidInvoices = data?.invoices ?? []
+  const paidInvoices = allPaidInvoices.filter((i) => i.period?.startsWith(String(new Date().getFullYear())))
+  const totalPaid = paidInvoices.reduce((sum, i) => sum + Number(i.amount), 0)
 
   const { data: receipt } = useQuery({
     queryKey: ['ortu', 'invoice', viewingId],
@@ -34,9 +38,14 @@ export default function OrtuPaymentHistory() {
     <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.paymentHistoryTitle')} showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
 
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard icon={CheckCircle2} label={t('ortu.invoicesPaidThisYear')} value={paidInvoices.length} tone="success" />
+        <StatCard icon={Wallet} label={t('ortu.totalPaidThisYear')} value={formatCurrency(totalPaid)} tone="primary" />
+      </div>
+
       <DataTable
         loading={isLoading}
-        rows={data?.invoices ?? []}
+        rows={allPaidInvoices}
         rowKey={(row) => row.id}
         columns={[
           { key: 'invoice_number', label: t('finance.invoiceNumber') },
@@ -83,6 +92,12 @@ export default function OrtuPaymentHistory() {
                 <div className="flex justify-between">
                   <dt className="text-text-secondary">{t('ortu.receiptPaidAt')}</dt>
                   <dd className="font-medium text-text-primary">{formatDateTime(receipt.paid_at)}</dd>
+                </div>
+              )}
+              {receipt.method && (
+                <div className="flex justify-between">
+                  <dt className="text-text-secondary">{t('ortu.receiptMethod')}</dt>
+                  <dd className="font-medium text-text-primary uppercase">{receipt.method.replace(/_/g, ' ')}</dd>
                 </div>
               )}
             </dl>

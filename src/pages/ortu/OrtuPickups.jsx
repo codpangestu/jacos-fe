@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { Plus, QrCode, Trash2, UserRound } from 'lucide-react'
+import { Info, Plus, QrCode, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
+import StatCard from '../../components/dashboard/StatCard'
 import FormField from '../../components/ui/FormField'
 import Modal from '../../components/ui/Modal'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -30,6 +31,7 @@ export default function OrtuPickups() {
     enabled: !!activeChild,
   })
   const pickups = data?.pickups ?? []
+  const activeCount = pickups.filter((p) => p.status === 'active').length
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -59,6 +61,15 @@ export default function OrtuPickups() {
   return (
     <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.pickupsTitle')} showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
+
+      <div className="max-w-xs">
+        <StatCard icon={ShieldCheck} label={t('ortu.pickupStatsActive')} value={activeCount} tone="success" />
+      </div>
+
+      <div className="flex items-start gap-2.5 rounded-2xl bg-primary-300/8 p-4 text-sm text-text-secondary">
+        <Info size={16} className="mt-0.5 shrink-0 text-primary-300" />
+        {t('ortu.pickupInfoBanner')}
+      </div>
 
       <div className="flex justify-end">
         <button

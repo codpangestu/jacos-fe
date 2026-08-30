@@ -1,7 +1,7 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { ChevronRight, RefreshCw } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -31,6 +31,14 @@ export default function OrtuInvoiceDetail() {
 
   return (
     <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.invoiceDetailTitle')} showSearch={false}>
+      <nav className="flex items-center gap-1.5 text-sm">
+        <Link to="/ortu/invoices" className="font-semibold text-primary-300 hover:underline">
+          {t('ortu.invoicesTitle')}
+        </Link>
+        <ChevronRight size={14} className="text-text-secondary" />
+        <span className="truncate text-text-secondary">{invoice?.invoice_number ?? id}</span>
+      </nav>
+
       {isLoading || !invoice ? (
         <p className="py-10 text-center text-sm text-text-secondary">{t('common.loading')}</p>
       ) : (
