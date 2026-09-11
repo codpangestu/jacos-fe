@@ -2,8 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, RefreshCw } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { apiGet, apiPost } from '../../lib/api'
 import { formatCurrency, formatDateTime } from '../../lib/format'
@@ -30,7 +29,7 @@ export default function OrtuInvoiceDetail() {
   }
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.invoiceDetailTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.invoiceDetailTitle')} headerVariant="title" showSearch={false}>
       <nav className="flex items-center gap-1.5 text-sm">
         <Link to="/ortu/invoices" className="font-semibold text-primary-300 hover:underline">
           {t('ortu.invoicesTitle')}
@@ -42,7 +41,7 @@ export default function OrtuInvoiceDetail() {
       {isLoading || !invoice ? (
         <p className="py-10 text-center text-sm text-text-secondary">{t('common.loading')}</p>
       ) : (
-        <div className="mx-auto max-w-lg space-y-5 rounded-2xl border border-border bg-bg-surface p-6">
+        <div className="space-y-5 rounded-2xl border border-border bg-bg-surface p-6">
           <div className="flex items-center justify-between">
             <p className="font-heading text-lg font-bold text-text-primary">{invoice.invoice_number}</p>
             <StatusBadge code={invoice.status} />
@@ -104,6 +103,6 @@ export default function OrtuInvoiceDetail() {
           </button>
         </div>
       )}
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

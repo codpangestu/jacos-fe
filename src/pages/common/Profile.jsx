@@ -1,18 +1,29 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BellRing, ShieldOff } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import { BellRing, LogOut, ShieldOff } from 'lucide-react'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import FormField from '../../components/ui/FormField'
 import Modal from '../../components/ui/Modal'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
-import { apiGet, apiPost, ApiError } from '../../lib/api'
-import { getUser, ROLE_LABEL } from '../../lib/auth'
+import { apiGet, apiPost, logout as apiLogout, ApiError } from '../../lib/api'
+import { clearUser, getUser, ROLE_LABEL } from '../../lib/auth'
 
 export default function Profile() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const user = getUser()
+  const isMobileRole = user?.role === 'orang_tua' || user?.role === 'staff'
+
+  async function handleLogout() {
+    try {
+      await apiLogout()
+    } finally {
+      clearUser()
+      navigate('/login')
+    }
+  }
 
   const [form, setForm] = useState({ current_password: '', password: '', password_confirmation: '' })
   const [errors, setErrors] = useState({})
@@ -60,12 +71,8 @@ export default function Profile() {
   }
 
   return (
-    <DashboardLayout
-      menuGroups={NAV_MENU_GROUPS[user?.role] ?? []}
-      pageTitle={t('profile.title')}
-      showSearch={false}
-    >
-      <div className="grid gap-6 lg:grid-cols-2">
+    <ResponsiveShell pageTitle={t('profile.title')} headerVariant="title" showSearch={false}>
+      <div className={`grid gap-6 ${isMobileRole ? 'grid-cols-1' : 'lg:grid-cols-2'}`}>
         <section className="space-y-4 rounded-2xl border border-border bg-bg-surface p-5">
           <h2 className="font-heading text-base font-bold text-text-primary">{t('profile.accountInfo')}</h2>
           <dl className="space-y-3 text-sm">
@@ -105,7 +112,7 @@ export default function Profile() {
           </p>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-border bg-bg-surface p-5 lg:col-span-2">
+        <section className={`space-y-4 rounded-2xl border border-border bg-bg-surface p-5 ${isMobileRole ? '' : 'lg:col-span-2'}`}>
           <div>
             <h2 className="font-heading text-base font-bold text-text-primary">{t('profile.changePassword')}</h2>
             <p className="text-xs text-text-secondary">{t('profile.changePasswordDescription')}</p>
@@ -117,7 +124,7 @@ export default function Profile() {
             </p>
           )}
 
-          <form onSubmit={handleChangePassword} className="grid gap-4 sm:grid-cols-3">
+          <form onSubmit={handleChangePassword} className={`grid gap-4 ${isMobileRole ? 'grid-cols-1' : 'sm:grid-cols-3'}`}>
             <FormField
               label={t('profile.currentPassword')}
               htmlFor="current_password"
@@ -146,7 +153,7 @@ export default function Profile() {
               value={form.password_confirmation}
               onChange={(e) => setForm({ ...form, password_confirmation: e.target.value })}
             />
-            <div className="sm:col-span-3">
+            <div className={isMobileRole ? '' : 'sm:col-span-3'}>
               <button
                 type="submit"
                 disabled={loading}
@@ -159,7 +166,7 @@ export default function Profile() {
         </section>
 
         {user?.role === 'orang_tua' && activeConsents.length > 0 && (
-          <section className="space-y-4 rounded-2xl border border-border bg-bg-surface p-5 lg:col-span-2">
+          <section className={`space-y-4 rounded-2xl border border-border bg-bg-surface p-5 ${isMobileRole ? '' : 'lg:col-span-2'}`}>
             <div>
               <h2 className="font-heading text-base font-bold text-text-primary">{t('consent.withdrawTitle')}</h2>
               <p className="text-xs text-text-secondary">{t('consent.withdrawDescription')}</p>
@@ -183,6 +190,17 @@ export default function Profile() {
         )}
       </div>
 
+      {isMobileRole && (
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-danger-500/30 bg-danger-500/10 py-3 text-sm font-semibold text-danger-500 hover:bg-danger-500/15"
+        >
+          <LogOut size={16} />
+          {t('nav.logout')}
+        </button>
+      )}
+
       <Modal
         open={!!withdrawing}
         onClose={() => setWithdrawing(null)}
@@ -199,6 +217,6 @@ export default function Profile() {
           </button>
         }
       />
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

@@ -1,25 +1,41 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Repeat } from 'lucide-react'
+import { storageUrl } from '../../lib/api'
 
-/** Indikator anak aktif + shortcut ganti anak (kalau akun ortu terhubung >1 anak). */
+/**
+ * Kartu "siswa aktif" + shortcut ganti anak (kalau akun ortu terhubung >1 anak) —
+ * meniru blok "Siswa Aktif" di referensi m.jacos.id.
+ */
 export default function ActiveChildBar({ child, multiple }) {
   const { t } = useTranslation()
   if (!child) return null
 
+  const initials = child.name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-primary-300/8 px-4 py-2.5 text-sm">
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-300/15 text-xs font-semibold text-primary-300">
-        {child.name
-          .split(' ')
-          .map((w) => w[0])
-          .slice(0, 2)
-          .join('')}
-      </span>
-      <span className="font-medium text-text-primary">{child.name}</span>
-      <span className="text-text-secondary">— {child.classroom?.name}</span>
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-bg-surface p-3.5">
+      {child.photo_path ? (
+        <img src={storageUrl(child.photo_path)} alt={child.name} className="h-12 w-12 shrink-0 rounded-full object-cover" />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-300/15 text-sm font-semibold text-primary-300">
+          {initials}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-primary-300">{t('ortu.activeChildLabel')}</p>
+        <p className="truncate text-sm font-bold text-text-primary">{child.name}</p>
+        <p className="truncate text-xs text-text-secondary">{child.classroom?.name}</p>
+      </div>
       {multiple && (
-        <Link to="/ortu/select-child" className="ml-auto flex items-center gap-1 text-xs font-semibold text-primary-300 hover:underline">
+        <Link
+          to="/ortu/select-child"
+          className="flex shrink-0 items-center gap-1 rounded-full bg-primary-300/12 px-3 py-1.5 text-xs font-bold text-primary-300 no-underline hover:bg-primary-300/20"
+        >
           <Repeat size={13} />
           {t('ortu.switchChild')}
         </Link>

@@ -68,6 +68,7 @@
   },
   "profile": {
     "title": "Profile & Account Settings",
+    "tabLabel": "Profile",
     "accountInfo": "Account Information",
     "name": "Name",
     "email": "Email",
@@ -455,6 +456,7 @@
     "selectChildTitle": "Select Child",
     "selectChildDescription": "Choose a child to view related information.",
     "switchChild": "Switch Child",
+    "activeChildLabel": "Active Student",
     "dashboardTitle": "Dashboard",
     "greetingMorning": "Good morning, {{name}}",
     "greetingAfternoon": "Good afternoon, {{name}}",
@@ -521,7 +523,8 @@
     "pickupInfoBanner": "A pickup QR code is a verification token tied to one pickup person and one child. It automatically stops working if the pickup person is removed or the validity period ends.",
     "outstandingBalance": "Outstanding Balance",
     "invoicesPaidThisYear": "Invoices Paid This Year",
-    "totalPaidThisYear": "Total Paid This Year"
+    "totalPaidThisYear": "Total Paid This Year",
+    "paymentAlertHint": "Settle the SPP payment before the due date."
   },
   "navMenu": {
     "main": "Main Menu",

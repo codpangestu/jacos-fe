@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Receipt, Wallet } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
 import StatCard from '../../components/dashboard/StatCard'
-import DataTable from '../../components/ui/DataTable'
+import MobileCardList from '../../components/ui/MobileCardList'
 import Modal from '../../components/ui/Modal'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { apiGet } from '../../lib/api'
@@ -35,37 +34,31 @@ export default function OrtuPaymentHistory() {
   if (!activeChild) return null
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.paymentHistoryTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.paymentHistoryTitle')} headerVariant="title" showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard icon={CheckCircle2} label={t('ortu.invoicesPaidThisYear')} value={paidInvoices.length} tone="success" />
         <StatCard icon={Wallet} label={t('ortu.totalPaidThisYear')} value={formatCurrency(totalPaid)} tone="primary" />
       </div>
 
-      <DataTable
+      <MobileCardList
         loading={isLoading}
         rows={allPaidInvoices}
         rowKey={(row) => row.id}
-        columns={[
-          { key: 'invoice_number', label: t('finance.invoiceNumber') },
-          { key: 'period', label: t('finance.period') },
-          { key: 'amount', label: t('finance.amount'), render: (row) => formatCurrency(row.amount) },
-          {
-            key: 'actions',
-            label: t('common.actions'),
-            render: (row) => (
-              <button
-                type="button"
-                onClick={() => setViewingId(row.id)}
-                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-page"
-              >
-                <Receipt size={13} />
-                {t('ortu.downloadReceipt')}
-              </button>
-            ),
-          },
-        ]}
+        onRowClick={(row) => setViewingId(row.id)}
+        renderRow={(row) => (
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-500/12 text-success-500">
+              <Receipt size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-text-primary">{row.invoice_number}</p>
+              <p className="text-xs text-text-secondary">{row.period} · {formatCurrency(row.amount)}</p>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-primary-300">{t('ortu.downloadReceipt')}</span>
+          </div>
+        )}
       />
 
       <Modal open={!!viewingId} onClose={() => setViewingId(null)} title={t('ortu.receiptTitle')}>
@@ -105,6 +98,6 @@ export default function OrtuPaymentHistory() {
           </div>
         )}
       </Modal>
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

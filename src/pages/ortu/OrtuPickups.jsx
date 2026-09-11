@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import { Info, Plus, QrCode, ShieldCheck, Trash2, UserRound } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
 import StatCard from '../../components/dashboard/StatCard'
 import FormField from '../../components/ui/FormField'
@@ -59,7 +58,7 @@ export default function OrtuPickups() {
   if (!activeChild) return null
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.pickupsTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.pickupsTitle')} headerVariant="title" showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
 
       <div className="max-w-xs">
@@ -92,7 +91,7 @@ export default function OrtuPickups() {
           {t('common.noData')}
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4">
           {pickups.map((p) => (
             <div key={p.id} className="rounded-2xl border border-border bg-bg-surface p-4">
               <div className="flex items-center gap-3">
@@ -209,6 +208,6 @@ export default function OrtuPickups() {
           </button>
         }
       />
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

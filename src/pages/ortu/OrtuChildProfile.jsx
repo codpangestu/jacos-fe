@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { CalendarCheck, ChevronRight, QrCode, Receipt, UserRound } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
 import StatusBadge from '../../components/ui/StatusBadge'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
@@ -73,7 +72,7 @@ export default function OrtuChildProfile() {
   ].filter(Boolean)
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.childProfileTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.childProfileTitle')} headerVariant="title" showSearch={false}>
       <nav className="flex items-center gap-1.5 text-sm">
         <Link to="/ortu/dashboard" className="font-semibold text-primary-300 hover:underline">
           {t('dashboard.title')}
@@ -128,7 +127,7 @@ export default function OrtuChildProfile() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         <div className="rounded-2xl border border-border bg-bg-surface p-5">
           <h3 className="mb-3 font-heading text-sm font-bold text-text-primary">{t('students.studentInfo')}</h3>
           <dl className="space-y-2 text-sm">
@@ -178,7 +177,7 @@ export default function OrtuChildProfile() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-bg-surface p-5 md:col-span-2">
+        <div className="rounded-2xl border border-border bg-bg-surface p-5">
           <h3 className="mb-3 font-heading text-sm font-bold text-text-primary">{t('dashboard.recentActivity')}</h3>
           {activity.length === 0 ? (
             <p className="text-sm text-text-secondary">{t('ortu.noActivity')}</p>
@@ -194,7 +193,7 @@ export default function OrtuChildProfile() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }
 

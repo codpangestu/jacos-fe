@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CalendarCheck, ChevronLeft, ChevronRight, CircleCheck, Stethoscope } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
-import StatCard from '../../components/dashboard/StatCard'
+import StatMiniGrid from '../../components/ui/StatMiniGrid'
 import ExportButton from '../../components/ui/ExportButton'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { apiGet } from '../../lib/api'
@@ -64,19 +63,22 @@ export default function OrtuAttendance() {
   if (!activeChild) return null
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.attendanceHistoryTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.attendanceHistoryTitle')} headerVariant="title" showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
 
       <div className="flex justify-end">
         <ExportButton onClick={exportSummary} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard icon={CalendarCheck} label={t('students.attendanceRate')} value={rate === null ? '-' : `${rate}%`} tone="primary" />
-        <StatCard icon={CircleCheck} label={t('status.hadir')} value={counts.hadir} tone="success" />
-        <StatCard icon={Stethoscope} label={`${t('status.izin')}/${t('status.sakit')}`} value={counts.izinSakit} tone="accent" />
-        <StatCard icon={AlertTriangle} label={t('status.alpa')} value={counts.alpa} tone="danger" />
-      </div>
+      <StatMiniGrid
+        columns={2}
+        items={[
+          { icon: CalendarCheck, label: t('students.attendanceRate'), value: rate === null ? '-' : `${rate}%`, tone: 'primary' },
+          { icon: CircleCheck, label: t('status.hadir'), value: counts.hadir, tone: 'success' },
+          { icon: Stethoscope, label: `${t('status.izin')}/${t('status.sakit')}`, value: counts.izinSakit, tone: 'accent' },
+          { icon: AlertTriangle, label: t('status.alpa'), value: counts.alpa, tone: 'danger' },
+        ]}
+      />
 
       <div className="rounded-2xl border border-border bg-bg-surface p-5">
         <div className="mb-4 flex items-center justify-between">
@@ -127,6 +129,6 @@ export default function OrtuAttendance() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

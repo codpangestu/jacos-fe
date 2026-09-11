@@ -2,15 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, CheckCircle2, RotateCcw } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import { apiGet, apiPostForm } from '../../lib/api'
 import { formatTime } from '../../lib/format'
-import { getUser } from '../../lib/auth'
 
 export default function SelfAttendance() {
   const { t } = useTranslation()
-  const user = getUser()
   const queryClient = useQueryClient()
   const videoRef = useRef(null)
   const streamRef = useRef(null)
@@ -76,11 +73,7 @@ export default function SelfAttendance() {
   useEffect(() => () => stopCamera(), [])
 
   return (
-    <DashboardLayout
-      menuGroups={NAV_MENU_GROUPS[user?.role] ?? []}
-      pageTitle={t('selfAttendance.title')}
-      showSearch={false}
-    >
+    <ResponsiveShell pageTitle={t('selfAttendance.title')} headerVariant="title" showSearch={false}>
       <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-border bg-bg-surface p-6">
         <div className="text-center">
           {attendance?.check_in_time && (
@@ -166,6 +159,6 @@ export default function SelfAttendance() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

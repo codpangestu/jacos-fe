@@ -2,12 +2,20 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Camera, Clock, QrCode } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import StatCard from '../../components/dashboard/StatCard'
 import ListCard from '../../components/dashboard/ListCard'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import { getUser } from '../../lib/auth'
 import { apiGet } from '../../lib/api'
 import { formatDateLong, formatTime } from '../../lib/format'
+
+function greetingKey() {
+  const hour = new Date().getHours()
+  if (hour < 11) return 'ortu.greetingMorning'
+  if (hour < 15) return 'ortu.greetingAfternoon'
+  if (hour < 19) return 'ortu.greetingEvening'
+  return 'ortu.greetingNight'
+}
 
 export default function StaffDashboard() {
   const { t } = useTranslation()
@@ -31,14 +39,16 @@ export default function StaffDashboard() {
       ? t('dashboard.checkedOutAt', { time: formatTime(attendance.check_out_time) })
       : t('dashboard.checkedInAt', { time: formatTime(attendance.check_in_time) })
 
+  const staffName = getUser()?.name ?? t('nav.defaultUserName')
+
   return (
-    <DashboardLayout
-      menuGroups={NAV_MENU_GROUPS.staff}
-      pageTitle={t('dashboard.title')}
+    <ResponsiveShell
+      pageTitle={t(greetingKey(), { name: staffName })}
       pageSubtitle={formatDateLong(new Date().toISOString())}
+      headerVariant="greeting"
       showSearch={false}
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3">
         <StatCard
           icon={Clock}
           label={t('dashboard.myAttendanceToday')}
@@ -88,6 +98,6 @@ export default function StaffDashboard() {
           }))}
         />
       )}
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

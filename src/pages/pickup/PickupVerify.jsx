@@ -4,20 +4,17 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
 import { AlertTriangle, Camera, CheckCircle2, MessageCircleWarning, QrCode, Search, UserRound } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import { apiGet, apiPost, storageUrl, ApiError } from '../../lib/api'
-import { getUser } from '../../lib/auth'
 
 QrScanner.WORKER_PATH = QrScannerWorkerPath
 
 export default function PickupVerify() {
   const { t } = useTranslation()
-  const user = getUser()
   const [tab, setTab] = useState('scan')
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS[user?.role] ?? []} pageTitle={t('pickup.verifyTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('pickup.verifyTitle')} headerVariant="title" showSearch={false}>
       <div className="flex gap-2 rounded-xl bg-bg-page p-1 sm:w-fit">
         <button
           type="button"
@@ -42,7 +39,7 @@ export default function PickupVerify() {
       </div>
 
       {tab === 'scan' ? <ScanPanel /> : <ManualPanel />}
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }
 
@@ -119,7 +116,7 @@ function ScanPanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6">
       <div className="overflow-hidden rounded-2xl border border-border bg-black">
         {cameraError ? (
           <div className="flex aspect-square flex-col items-center justify-center gap-2 p-8 text-center">
@@ -332,7 +329,7 @@ function ManualPanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-border bg-bg-surface p-5">
         <div className="mb-3 flex items-center gap-2 rounded-xl border border-border bg-bg-page px-3.5 py-2.5">
           <Search size={16} className="text-text-secondary" />

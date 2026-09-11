@@ -68,6 +68,7 @@
   },
   "profile": {
     "title": "Profil & Pengaturan Akun",
+    "tabLabel": "Profil",
     "accountInfo": "Informasi Akun",
     "name": "Nama",
     "email": "Email",
@@ -455,6 +456,7 @@
     "selectChildTitle": "Pilih Anak",
     "selectChildDescription": "Pilih anak untuk melihat informasi terkait.",
     "switchChild": "Ganti Anak",
+    "activeChildLabel": "Siswa Aktif",
     "dashboardTitle": "Dashboard",
     "greetingMorning": "Selamat pagi, {{name}}",
     "greetingAfternoon": "Selamat siang, {{name}}",
@@ -521,7 +523,8 @@
     "pickupInfoBanner": "Kode QR penjemputan adalah token verifikasi yang terikat ke 1 penjemput dan 1 anak. Kode ini otomatis tidak berlaku lagi kalau penjemputnya dihapus atau masa berlakunya habis.",
     "outstandingBalance": "Total Tunggakan",
     "invoicesPaidThisYear": "Tagihan Lunas Tahun Ini",
-    "totalPaidThisYear": "Total Dibayar Tahun Ini"
+    "totalPaidThisYear": "Total Dibayar Tahun Ini",
+    "paymentAlertHint": "Selesaikan pembayaran SPP sebelum tanggal jatuh tempo."
   },
   "navMenu": {
     "main": "Menu Utama",

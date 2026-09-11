@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, Receipt, Wallet } from 'lucide-react'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import { AlertTriangle, ChevronRight, CheckCircle2, Receipt, Wallet } from 'lucide-react'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
 import StatCard from '../../components/dashboard/StatCard'
-import DataTable from '../../components/ui/DataTable'
+import MobileCardList from '../../components/ui/MobileCardList'
 import FilterBar from '../../components/ui/FilterBar'
 import StatusBadge from '../../components/ui/StatusBadge'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
@@ -41,10 +40,10 @@ export default function OrtuInvoices() {
   if (!activeChild) return null
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.invoicesTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.invoicesTitle')} headerVariant="title" showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <StatCard icon={Wallet} label={t('ortu.outstandingBalance')} value={formatCurrency(outstanding)} tone={outstanding ? 'danger' : 'success'} />
         <StatCard icon={Receipt} label={t('ortu.invoicesPaidThisYear')} value={paidThisYear} tone="primary" />
       </div>
@@ -80,31 +79,30 @@ export default function OrtuInvoices() {
         ]}
       />
 
-      <DataTable
+      <MobileCardList
         loading={isLoading}
         rows={data?.invoices ?? []}
         rowKey={(row) => row.id}
-        columns={[
-          { key: 'invoice_number', label: t('finance.invoiceNumber') },
-          { key: 'period', label: t('finance.period') },
-          { key: 'amount', label: t('finance.amount'), render: (row) => formatCurrency(row.amount) },
-          { key: 'due_date', label: t('finance.dueDate'), render: (row) => formatDate(row.due_date) },
-          { key: 'status', label: t('common.status'), render: (row) => <StatusBadge code={row.status} /> },
-          {
-            key: 'actions',
-            label: t('common.actions'),
-            render: (row) => (
-              <button
-                type="button"
-                onClick={() => navigate(`/ortu/invoices/${row.id}`)}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-page"
-              >
-                {t('common.view')}
-              </button>
-            ),
-          },
-        ]}
+        onRowClick={(row) => navigate(`/ortu/invoices/${row.id}`)}
+        renderRow={(row) => (
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-primary-300">
+              <Receipt size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-text-primary">{row.invoice_number}</p>
+              <p className="text-xs text-text-secondary">
+                {row.period} · {formatCurrency(row.amount)}
+              </p>
+              <p className="text-xs text-text-secondary">{t('finance.dueDate')}: {formatDate(row.due_date)}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <StatusBadge code={row.status} />
+              <ChevronRight size={16} className="text-text-secondary" />
+            </div>
+          </div>
+        )}
       />
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }

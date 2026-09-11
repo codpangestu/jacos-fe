@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import DashboardLayout from '../../layouts/DashboardLayout'
-import { NAV_MENU_GROUPS } from '../../config/navigation'
+import { UserRound } from 'lucide-react'
+import ResponsiveShell from '../../layouts/ResponsiveShell'
 import ActiveChildBar from '../../components/ortu/ActiveChildBar'
-import DataTable from '../../components/ui/DataTable'
+import MobileCardList from '../../components/ui/MobileCardList'
 import StatusBadge from '../../components/ui/StatusBadge'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { apiGet } from '../../lib/api'
@@ -24,10 +24,10 @@ export default function OrtuPickupHistory() {
   if (!activeChild) return null
 
   return (
-    <DashboardLayout menuGroups={NAV_MENU_GROUPS.orang_tua} pageTitle={t('ortu.pickupHistoryTitle')} showSearch={false}>
+    <ResponsiveShell pageTitle={t('ortu.pickupHistoryTitle')} headerVariant="title" showSearch={false}>
       <ActiveChildBar child={activeChild} multiple={children.length > 1} />
 
-      <DataTable
+      <MobileCardList
         loading={isLoading}
         rows={data?.data ?? []}
         pagination={{
@@ -36,15 +36,25 @@ export default function OrtuPickupHistory() {
           total: data?.total,
           onPageChange: setPage,
         }}
-        columns={[
-          { key: 'pickup', label: t('pickup.pickupPerson'), render: (row) => row.authorized_pickup?.name },
-          { key: 'relationship', label: t('ortu.pickupRelationship'), render: (row) => row.authorized_pickup?.relationship },
-          { key: 'method', label: t('pickup.method'), render: (row) => <StatusBadge code={row.method} /> },
-          { key: 'verified_by', label: t('pickup.verifiedBy'), render: (row) => row.verified_by?.name },
-          { key: 'time', label: t('pickup.time'), render: (row) => formatDateTime(row.checked_out_at) },
-          { key: 'note', label: t('common.note'), render: (row) => row.note || '-' },
-        ]}
+        renderRow={(row) => (
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-primary-300">
+              <UserRound size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold text-text-primary">{row.authorized_pickup?.name}</p>
+                <StatusBadge code={row.method} />
+              </div>
+              <p className="text-xs text-text-secondary">{row.authorized_pickup?.relationship}</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                {formatDateTime(row.checked_out_at)} · {t('pickup.verifiedBy')}: {row.verified_by?.name ?? '-'}
+              </p>
+              {row.note && <p className="mt-1 text-xs text-text-secondary">{t('common.note')}: {row.note}</p>}
+            </div>
+          </div>
+        )}
       />
-    </DashboardLayout>
+    </ResponsiveShell>
   )
 }
