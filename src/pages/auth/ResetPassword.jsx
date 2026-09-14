@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import logo from '../../assets/guide/logo.png'
+import logo from '../../assets/guide/logo baru.svg'
 import { apiPost } from '../../lib/api'
 
 export default function ResetPassword() {

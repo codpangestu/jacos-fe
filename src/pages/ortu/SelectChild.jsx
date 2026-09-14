@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import logo from '../../assets/guide/logo.png'
+import logo from '../../assets/guide/logo baru.svg'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { setActiveChildId } from '../../lib/activeChild'
 

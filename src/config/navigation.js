@@ -2,6 +2,7 @@ import {
   CalendarCheck,
   CalendarRange,
   Camera,
+  ClipboardList,
   Clock,
   FileClock,
   GraduationCap,
@@ -83,6 +84,7 @@ export const NAV_MENU_GROUPS = {
       items: [
         { label: 'navMenu.attendanceInput', icon: UserCheck, to: '/guru/attendance' },
         { label: 'navMenu.attendanceHistory', icon: History, to: '/guru/attendance/history' },
+        { label: 'navMenu.studentLeaveRequests', icon: ClipboardList, to: '/guru/student-leave-requests' },
       ],
     },
     {

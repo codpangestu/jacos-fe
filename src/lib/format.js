@@ -63,11 +63,13 @@ export function formatDate(isoString, { withYear = true } = {}) {
     : `${p.day} ${MONTHS_SHORT[l][p.month - 1]}`
 }
 
-export function formatDateLong(isoString) {
+export function formatDateLong(isoString, { withYear = true } = {}) {
   const p = parseParts(isoString)
   if (!p) return '-'
   const l = lang()
-  return `${p.day} ${MONTHS[l][p.month - 1]} ${p.year}`
+  return withYear
+    ? `${p.day} ${MONTHS[l][p.month - 1]} ${p.year}`
+    : `${p.day} ${MONTHS[l][p.month - 1]}`
 }
 
 export function formatTime(isoString) {
@@ -85,6 +87,23 @@ export function formatDateTime(isoString) {
 export function formatCurrency(amount) {
   const n = Number(amount ?? 0)
   return `Rp ${n.toLocaleString('id-ID')}`
+}
+
+export function formatPeriod(period) {
+  const match = /^(\d{4})-(\d{2})$/.exec(period ?? '')
+  if (!match) return period ?? '-'
+  const [, year, month] = match
+  return `${MONTHS[lang()][Number(month) - 1]} ${year}`
+}
+
+/** Selisih hari kalender (bukan jam) antara hari ini dan sebuah tanggal jatuh tempo. */
+export function daysUntil(isoString) {
+  const p = parseParts(isoString)
+  if (!p) return null
+  const due = new Date(p.year, p.month - 1, p.day)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((due - today) / 86400000)
 }
 
 export function toDateInputValue(isoString) {

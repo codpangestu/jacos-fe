@@ -1,612 +1,790 @@
-import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
-  CalendarCheck,
-  CheckCircle2,
+  Check,
+  CheckCircle,
+  ChevronDown,
   ChevronRight,
-  QrCode,
-  Receipt,
-  Repeat,
-  UserRound,
+  ClipboardCheck,
+  Stethoscope,
+  CalendarDays,
+  CalendarCheck,
+  CalendarHeart,
+  Car,
+  CreditCard,
+  UserRoundCheck,
   Wallet,
-} from 'lucide-react'
-import ResponsiveShell from '../../layouts/ResponsiveShell'
-import StatusBadge from '../../components/ui/StatusBadge'
-import useOrtuChildren from '../../hooks/useOrtuChildren'
-import { apiGet, storageUrl } from '../../lib/api'
-import { getUser } from '../../lib/auth'
-import { setActiveChildId } from '../../lib/activeChild'
-import {
-  formatCurrency,
-  formatDate,
-  formatDateLong,
-  formatTime,
-  todayInputValue,
-  weekdaysShort,
-} from '../../lib/format'
+} from "lucide-react";
+import ResponsiveShell from "../../layouts/ResponsiveShell";
+import NotificationBell from "../../components/NotificationBell";
+import StatusBadge from "../../components/ui/StatusBadge";
+import useOrtuChildren from "../../hooks/useOrtuChildren";
+import { apiGet, storageUrl } from "../../lib/api";
+import { setActiveChildId } from "../../lib/activeChild";
+import { formatCurrency, formatDate, formatTime, weekdaysShort } from "../../lib/format";
+import { getUser } from "../../lib/auth";
+import bannerImg from "../../assets/guide/banner.png";
+import banner1 from "../../assets/guide/banner (1).png";
+import banner2 from "../../assets/guide/banner (2).png";
 
-const UNPAID = ['belum_bayar', 'terlambat']
+/* ──────────────────────────────────────────────────────────
+   BANNER SLIDESHOW
+   Slide 1 : gambar banner.png (aset sekolah)
+   Slide 2 : info penjemputan — gradient biru teal
+   Slide 3 : info tagihan/SPP — gradient amber warm
+   Auto-play 4 detik, swipe touch, dot indicator
+──────────────────────────────────────────────────────────── */
+function BannerSlideshow({ navigate }) {
+  const [current, setCurrent] = useState(0)
+  const trackRef = useRef(null)
+  const touchStartX = useRef(null)
+  const timerRef = useRef(null)
 
-function greetingKey() {
-  const h = new Date().getHours()
-  if (h < 11) return 'ortu.greetingMorning'
-  if (h < 15) return 'ortu.greetingAfternoon'
-  if (h < 19) return 'ortu.greetingEvening'
-  return 'ortu.greetingNight'
-}
+  const slides = [
+    { id: 'banner' },
+    { id: 'pickup' },
+    { id: 'invoice' },
+  ]
 
-/* ── Status attendance → warna dot ── */
-const STATUS_DOT = {
-  hadir: 'bg-success-500',
-  izin: 'bg-accent-500',
-  sakit: 'bg-primary-300',
-  alpa: 'bg-danger-500',
-}
+  const goTo = useCallback((idx) => {
+    setCurrent((idx + slides.length) % slides.length)
+  }, [slides.length])
 
-/* ── Avatar anak: foto atau inisial, ring menyesuaikan konteks ── */
-function Avatar({ child, size = 'md', onDark = false }) {
-  const initials = child.name.split(' ').map((w) => w[0]).slice(0, 2).join('')
-  const dims = size === 'sm' ? 'h-9 w-9 text-[11px]' : 'h-14 w-14 text-base'
-  const ring = onDark ? 'ring-2 ring-white/25' : 'ring-2 ring-bg-surface'
+  // Auto-play
+  useEffect(() => {
+    timerRef.current = setInterval(() => goTo(current + 1), 4000)
+    return () => clearInterval(timerRef.current)
+  }, [current, goTo])
 
-  if (child.photo_path) {
-    return (
-      <img
-        src={storageUrl(child.photo_path)}
-        alt={child.name}
-        className={`${dims} ${ring} shrink-0 rounded-full object-cover`}
-      />
-    )
+  // Touch swipe
+  function onTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+  }
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return
+    const delta = e.changedTouches[0].clientX - touchStartX.current
+    if (Math.abs(delta) > 40) goTo(current + (delta < 0 ? 1 : -1))
+    touchStartX.current = null
   }
 
-  const tone =
-    child.gender === 'female'
-      ? onDark
-        ? 'bg-white/15 text-white'
-        : 'bg-primary-300/15 text-primary-300'
-      : onDark
-        ? 'bg-white/15 text-white'
-        : 'bg-primary-300/15 text-primary-300'
-
   return (
-    <span
-      className={`${dims} ${ring} flex shrink-0 items-center justify-center rounded-full font-bold ${tone}`}
-    >
-      {initials}
-    </span>
-  )
-}
-
-/* ── Week strip 7 hari terakhir ── */
-function WeekStrip({ attendances }) {
-  const weekdays = weekdaysShort()
-  const today = new Date()
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(today.getDate() - (6 - i))
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const match = attendances.find((a) => a.date === iso)
-    return {
-      label: weekdays[d.getDay()],
-      day: d.getDate(),
-      status: match?.status ?? null,
-      isToday: i === 6,
-    }
-  })
-
-  return (
-    <div className="grid grid-cols-7 gap-1">
-      {days.map((d, i) => (
-        <div key={i} className="flex flex-col items-center gap-1.5">
-          <span
-            className={`text-[10px] font-bold uppercase tracking-wider ${
-              d.isToday ? 'text-primary-300' : 'text-text-secondary'
-            }`}
-          >
-            {d.label}
-          </span>
-          <div
-            className={`flex h-9 w-9 items-center justify-center rounded-xl text-[13px] font-bold ${
-              d.isToday
-                ? 'bg-primary-300 text-white'
-                : d.status === 'hadir'
-                  ? 'bg-success-500/10 text-success-500'
-                  : d.status === 'izin'
-                    ? 'bg-accent-500/10 text-accent-500'
-                    : d.status === 'sakit'
-                      ? 'bg-primary-300/10 text-primary-300'
-                      : d.status === 'alpa'
-                        ? 'bg-danger-500/10 text-danger-500'
-                        : 'border border-border bg-bg-page/60 text-text-secondary'
-            }`}
-          >
-            {d.day}
-          </div>
-          {d.status && !d.isToday ? (
-            <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[d.status] ?? 'bg-border'}`} />
-          ) : (
-            <span className="h-1.5 w-1.5" />
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/* ── Quick action (menu cepat di bawah hero) ── */
-function QuickAction({ icon: Icon, label, to, bg, fg }) {
-  return (
-    <Link to={to} className="group flex flex-col items-center gap-1.5 py-1 no-underline">
-      <span
-        className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-transform group-active:scale-90 ${bg}`}
+    <div className="w-full">
+      {/* Slide track */}
+      <div
+        className="relative w-full overflow-hidden rounded-[20px]"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
-        <Icon size={19} className={fg} />
-      </span>
-      <span className="line-clamp-2 w-full px-0.5 text-center text-[10.5px] font-semibold leading-[1.3] text-text-secondary">
-        {label}
-      </span>
-    </Link>
-  )
-}
+        <div
+          ref={trackRef}
+          className="flex transition-transform duration-500 ease-in-out"
+          style={{ transform: `translateX(-${current * 100}%)` }}
+        >
+          {/* Slide 1 — banner.png */}
+          <div className="w-full shrink-0">
+            <img
+              src={bannerImg}
+              alt="JACOS Banner"
+              className="h-[140px] w-full object-cover"
+              draggable="false"
+            />
+          </div>
 
-/* ── Judul seksi + aksi opsional ── */
-function SectionHead({ title, action }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="font-heading text-[15px] font-bold text-text-primary">{title}</h2>
-      {action}
-    </div>
-  )
-}
+          {/* Slide 2 — banner (1).png */}
+          <div className="w-full shrink-0">
+            <img
+              src={banner1}
+              alt=""
+              aria-hidden="true"
+              className="h-[140px] w-full object-cover"
+              draggable="false"
+            />
+          </div>
 
-function ActionLink({ to, children }) {
-  return (
-    <Link
-      to={to}
-      className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary-300 no-underline hover:text-primary-400"
-    >
-      {children}
-      <ChevronRight size={13} />
-    </Link>
-  )
-}
+          {/* Slide 3 — banner (2).png */}
+          <div className="w-full shrink-0">
+            <img
+              src={banner2}
+              alt=""
+              aria-hidden="true"
+              className="h-[140px] w-full object-cover"
+              draggable="false"
+            />
+          </div>
+        </div>
+      </div>
 
-/* ── Chip penjemput sah ── */
-function PickupChip({ person }) {
-  const initials = person.name.split(' ').map((w) => w[0]).slice(0, 2).join('')
-  return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-border bg-bg-surface px-3 py-2.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-xs font-bold text-primary-300">
-        {initials}
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs font-semibold text-text-primary">{person.name}</p>
-        <p className="truncate text-[11px] text-text-secondary">{person.relationship}</p>
+      {/* Dot indicator — pill overlap ke bawah banner */}
+      <div className="relative flex justify-center" style={{ marginTop: '-13px' }}>
+        <div className="relative z-10 flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 shadow-sm">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              className={`rounded-full transition-all duration-300 h-[6px] ${
+                i === current ? 'w-4 bg-[#2D94DA]' : 'w-[6px] bg-[#2D94DA]/30'
+              }`}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
-/* ══════════════════════════════════════════════════════
-   MAIN COMPONENT — semua query & interaksi tidak diubah
-══════════════════════════════════════════════════════ */
+/** Emoji hubungan penjemput */
+function relationshipEmoji(relationship = "") {
+  const r = relationship.toLowerCase();
+  if (r.includes("ayah") || r.includes("bapak") || r.includes("father"))
+    return "👨";
+  if (r.includes("ibu") || r.includes("mother")) return "👩";
+  if (r.includes("kakek") || r.includes("grandfather")) return "👴";
+  if (r.includes("nenek") || r.includes("grandmother")) return "👵";
+  if (r.includes("supir") || r.includes("driver") || r.includes("jemput"))
+    return "🚗";
+  return "🧑";
+}
+
 export default function OrtuDashboard() {
-  const { t } = useTranslation()
-  const { activeChild, children } = useOrtuChildren()
-  const today = todayInputValue()
-  const month = today.slice(0, 7)
-  const parentName = getUser()?.name ?? t('nav.defaultUserName')
-  const firstName = parentName.split(' ')[0]
-  const unpaidChildren = children.filter((c) => c.invoice && UNPAID.includes(c.invoice.status))
-  const unpaidTotal = unpaidChildren.reduce((sum, c) => sum + Number(c.invoice.amount ?? 0), 0)
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { children, activeChild } = useOrtuChildren();
+  const user = getUser();
 
-  /* ── Queries (logic unchanged) ── */
-  const { data: attendanceData } = useQuery({
-    queryKey: ['ortu', 'attendance', activeChild?.id, month],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/attendance`, { month }),
-    enabled: !!activeChild,
-  })
-  const attendances = attendanceData?.attendances ?? []
-  const hadirCount = attendances.filter((a) => a.status === 'hadir').length
-  const attendPct = attendances.length > 0 ? Math.round((hadirCount / attendances.length) * 100) : 0
-  const counts = {
-    hadir: hadirCount,
-    izin: attendances.filter((a) => a.status === 'izin').length,
-    sakit: attendances.filter((a) => a.status === 'sakit').length,
-    alpa: attendances.filter((a) => a.status === 'alpa').length,
-  }
-
-  const { data: pickupLogsData } = useQuery({
-    queryKey: ['ortu', 'pickup-logs', activeChild?.id],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/pickup-logs`),
-    enabled: !!activeChild,
-  })
-  const todayLog = (pickupLogsData?.data ?? []).find((l) => l.checked_out_at?.startsWith(today))
-
-  const { data: invoicesData } = useQuery({
-    queryKey: ['ortu', 'invoices', activeChild?.id, 'belum_bayar'],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/invoices`, { status: 'belum_bayar' }),
-    enabled: !!activeChild,
-  })
-  const activeInvoice = (invoicesData?.invoices ?? [])[0]
-
-  const { data: announcementsData } = useQuery({
-    queryKey: ['announcements'],
-    queryFn: () => apiGet('/api/announcements'),
-  })
-  const announcements = announcementsData?.announcements ?? []
+  const currentChild = activeChild ?? children[0];
+  const agendaRef = useRef(null);
 
   const { data: pickupsData } = useQuery({
-    queryKey: ['ortu', 'pickups', activeChild?.id],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/pickups`),
-    enabled: !!activeChild,
-  })
-  const activePickups = (pickupsData?.pickups ?? []).filter((p) => p.status === 'active')
+    queryKey: ["ortu", "pickups", currentChild?.id],
+    queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/pickups`),
+    enabled: !!currentChild,
+  });
+  const activePickups = (pickupsData?.pickups ?? []).filter(
+    (p) => p.status === "active",
+  );
 
-  if (!activeChild) return null
+  const today = new Date();
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+  const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const ymCurrent = ymOf(today);
+  const ymPrev = ymOf(prevMonthDate);
 
-  /* Status SPP anak aktif (meniru logika badge versi lama) */
-  const sppStatus = activeChild.invoice && UNPAID.includes(activeChild.invoice.status)
-    ? activeChild.invoice.status
-    : 'lunas'
-  const sppDot =
-    sppStatus === 'terlambat'
-      ? 'bg-accent-500'
-      : sppStatus === 'belum_bayar'
-        ? 'bg-danger-500'
-        : 'bg-success-500'
+  const { data: attCurrent } = useQuery({
+    queryKey: ["ortu", "attendance", currentChild?.id, ymCurrent],
+    queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/attendance`, { month: ymCurrent }),
+    enabled: !!currentChild,
+  });
+  const { data: attPrev } = useQuery({
+    queryKey: ["ortu", "attendance", currentChild?.id, ymPrev],
+    queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/attendance`, { month: ymPrev }),
+    enabled: !!currentChild,
+  });
+  const attendanceByDate = new Map(
+    [...(attPrev?.attendances ?? []), ...(attCurrent?.attendances ?? [])].map((row) => [
+      row.date.slice(0, 10),
+      row,
+    ]),
+  );
+
+  const { data: invoicesData } = useQuery({
+    queryKey: ["ortu", "invoices", currentChild?.id, "all"],
+    queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/invoices`),
+    enabled: !!currentChild,
+  });
+  const allInvoices = invoicesData?.invoices ?? [];
+  const unpaidInvoices = allInvoices.filter((i) => ["belum_bayar", "terlambat"].includes(i.status));
+  const outstandingTotal = unpaidInvoices.reduce((sum, i) => sum + Number(i.amount), 0);
+  const nearestDueInvoice = unpaidInvoices
+    .slice()
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
+
+  const { data: calendarData } = useQuery({
+    queryKey: ["ortu", "calendar", "upcoming"],
+    queryFn: () => apiGet("/api/ortu/calendar/upcoming"),
+  });
+  const upcomingAgenda = calendarData?.holidays ?? [];
+
+  if (children.length === 0) return null;
+
+  function pickChild(childId) {
+    setIsDropdownOpen(false);
+    if (childId === null) return;
+    setActiveChildId(childId);
+  }
+
+  // Weekstrip 7 hari terakhir (berjalan, bukan mock) — dari data absensi asli.
+  const weekDays = Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - idx));
+    const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const record = attendanceByDate.get(key);
+    return {
+      key,
+      name: weekdaysShort()[d.getDay()],
+      date: pad2(d.getDate()),
+      status: record?.status ?? null,
+      attended: record?.status === "hadir",
+      active: idx === 6,
+    };
+  });
+  const recentAttendanceEntries = Array.from(attendanceByDate.entries())
+    .filter(([, row]) => !!row.status)
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .slice(0, 2);
 
   return (
-    <ResponsiveShell
-      pageTitle={t(greetingKey(), { name: firstName })}
-      pageSubtitle={formatDateLong(today)}
-      headerVariant="greeting"
-      showSearch={false}
-    >
-      {/* ═══════════════════════════════════════════════
-          HERO — anak aktif + status hari ini
-      ═══════════════════════════════════════════════ */}
-      <div
-        className="relative overflow-hidden rounded-3xl p-5 text-white"
-        style={{ background: 'linear-gradient(135deg, var(--color-primary-400) 0%, var(--color-primary-900) 105%)' }}
-      >
-        <div className="pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/8 blur-2xl" />
-        <div className="relative">
-          <div className="flex items-center gap-3.5">
-            <Avatar child={activeChild} onDark />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
-                {t('ortu.activeChildLabel')}
-              </p>
-              <h2 className="truncate font-heading text-lg font-extrabold leading-snug">
-                {activeChild.name}
-              </h2>
-              <p className="truncate text-xs text-white/70">{activeChild.classroom?.name}</p>
-            </div>
-            {children.length > 1 && (
-              <Link
-                to="/ortu/select-child"
-                className="flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-3 py-1.5 text-[11px] font-bold text-white no-underline backdrop-blur transition-colors hover:bg-white/20"
-              >
-                <Repeat size={13} />
-                {t('ortu.switchChild')}
-              </Link>
+    <ResponsiveShell headerVariant="none" fullBleed showSearch={false}>
+      {/* 
+        MAIN CANVAS: Pastel Gradient Background exactly matching Figma:
+        linear-gradient(150deg, #CAE6F6 0%, #F6E3F2 50%, #DDF0F4 100%)
+      */}
+      <div className="relative flex w-full flex-col items-center bg-gradient-to-br from-[#CAE6F6] via-[#F6E3F2] to-[#DDF0F4] overflow-x-hidden">
+        {/* 1. HERO SECTION — sticky, collapses on scroll */}
+        <div
+          className={`sticky top-0 z-50 w-full shrink-0 transition-all duration-300 ease-in-out ${
+            scrolled ? 'h-[64px]' : 'h-[175px]'
+          }`}
+        >          {/* Blue header */}
+          <div
+            className={`absolute top-0 left-0 right-0 rounded-b-[40px] px-5 transition-all duration-300 ease-in-out overflow-hidden ${
+              scrolled
+                ? 'h-[64px] pt-[calc(env(safe-area-inset-top)+8px)]'
+                : 'h-[130px] pt-[calc(env(safe-area-inset-top)+14px)]'
+            }`}
+            style={{ background: 'linear-gradient(to right, #35AEFC 0%, #007BFF 50%, #003F8A 100%)', boxShadow: '0 4px 16px rgba(0,63,138,0.35)' }}
+          >
+            {/* Layer circles dekorasi */}
+            <div className="pointer-events-none absolute -left-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.18)' }} />
+            <div className="pointer-events-none absolute -left-4 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            {scrolled ? (
+              /* ── Collapsed: satu baris compact ── */
+              <div className="flex w-full items-center justify-between h-full pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E6F2FF] border border-[#66ADFF] text-sm">
+                    👨‍💼
+                  </div>
+                  <span className="text-[13px] font-bold text-white leading-tight">
+                    {user?.name ? `Hi, ${user.name.split(' ')[0]}` : 'Hi!'}
+                  </span>
+                </div>
+                <NotificationBell variant="hero" />
+              </div>
+            ) : (
+              /* ── Expanded: full greeting ── */
+              <div className="flex w-full items-center justify-between">
+                <div className="flex items-center gap-3 pt-5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E6F2FF] border-2 border-[#66ADFF] text-xl shadow-md">
+                    👨‍💼
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[11px] font-medium text-white/80">
+                      Selamat Datang
+                    </span>
+                    <h1 className="text-base font-bold text-white leading-tight">
+                      {user?.name ? `Hi, ${user.name}` : "Hi, Bapak Adi"}
+                    </h1>
+                  </div>
+                </div>
+                <NotificationBell variant="hero" className="mt-5" />
+              </div>
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {/* Kehadiran */}
-            <div className="flex flex-col items-center gap-1 rounded-2xl bg-white/10 px-2 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
-                {t('ortu.attendanceLabel')}
-              </p>
-              <p className="font-heading text-lg font-extrabold leading-none">
-                {attendances.length > 0 ? `${attendPct}%` : '—'}
-              </p>
-              <span className="mt-1 h-1 w-full max-w-[56px] overflow-hidden rounded-full bg-white/20">
-                <span
-                  className="block h-full rounded-full bg-white transition-all"
-                  style={{ width: attendances.length > 0 ? `${attendPct}%` : '0%' }}
-                />
-              </span>
-            </div>
-
-            {/* Jemput hari ini */}
-            <div className="flex flex-col items-center gap-1 rounded-2xl bg-white/10 px-2 py-2.5">
-              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${todayLog ? 'bg-success-500' : 'bg-white/50'}`}
-                />
-                {t('ortu.pickupLabel')}
-              </p>
-              <p className="max-w-full truncate text-[13px] font-bold leading-tight">
-                {todayLog ? formatTime(todayLog.checked_out_at) : t('ortu.notPickedUpYet')}
-              </p>
-              <span className="mt-1 h-1 w-full max-w-[56px] rounded-full bg-white/10" />
-            </div>
-
-            {/* SPP */}
-            <div className="flex flex-col items-center gap-1 rounded-2xl bg-white/10 px-2 py-2.5">
-              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
-                <span className={`h-1.5 w-1.5 rounded-full ${sppDot}`} />
-                {t('ortu.sppLabel')}
-              </p>
-              <p className="max-w-full truncate text-[13px] font-bold leading-tight">
-                {t(`status.${sppStatus}`)}
-              </p>
-              <span className="mt-1 h-1 w-full max-w-[56px] rounded-full bg-white/10" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════
-          QUICK ACTIONS
-      ═══════════════════════════════════════════════ */}
-      <div className="rounded-2xl border border-border bg-bg-surface px-2 py-1">
-        <div className="grid grid-cols-5">
-          {[
-            {
-              icon: CalendarCheck,
-              label: t('navMenu.attendanceHistory'),
-              to: '/ortu/attendance',
-              bg: 'bg-primary-300/12',
-              fg: 'text-primary-300',
-            },
-            {
-              icon: QrCode,
-              label: t('navMenu.managePickups'),
-              to: '/ortu/pickups',
-              bg: 'bg-success-500/12',
-              fg: 'text-success-500',
-            },
-            {
-              icon: Receipt,
-              label: t('navMenu.billList'),
-              to: '/ortu/invoices',
-              bg: 'bg-accent-500/12',
-              fg: 'text-accent-500',
-            },
-            {
-              icon: Wallet,
-              label: t('navMenu.paymentHistory'),
-              to: '/ortu/payments/history',
-              bg: 'bg-primary-100/15',
-              fg: 'text-primary-300',
-            },
-            {
-              icon: UserRound,
-              label: t('navMenu.childProfile'),
-              to: '/ortu/profile-anak',
-              bg: 'bg-text-primary/6',
-              fg: 'text-text-secondary',
-            },
-          ].map((item) => (
-            <QuickAction key={item.to} {...item} />
-          ))}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════
-          PAYMENT ALERT / ALL-CLEAR
-      ═══════════════════════════════════════════════ */}
-      {unpaidChildren.length > 0 ? (
-        <Link
-          to="/ortu/invoices"
-          className="flex items-center gap-3 rounded-2xl border border-accent-500/25 bg-accent-500/10 px-4 py-3 no-underline"
-        >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-500/15">
-            <AlertTriangle size={18} className="text-accent-500" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-bold text-text-primary">
-              {t('ortu.unpaidBannerTitle', { count: unpaidChildren.length })}
-            </p>
-            <p className="mt-0.5 truncate text-xs font-medium text-accent-500">
-              {formatCurrency(unpaidTotal)}
-            </p>
-          </div>
-          <ChevronRight size={18} className="shrink-0 text-text-secondary" />
-        </Link>
-      ) : (
-        <div className="flex items-center gap-3 rounded-2xl border border-success-500/25 bg-success-500/10 px-4 py-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-500/15">
-            <CheckCircle2 size={18} className="text-success-500" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[13px] font-bold text-text-primary">{t('ortu.allPaidTitle')}</p>
-            <p className="mt-0.5 text-xs text-text-secondary">{t('ortu.allPaidDescription')}</p>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════
-          KEHADIRAN BULAN INI
-      ═══════════════════════════════════════════════ */}
-      <div className="rounded-2xl border border-border bg-bg-surface p-4">
-        <SectionHead
-          title={t('ortu.attendanceThisMonth')}
-          action={<ActionLink to="/ortu/attendance">{t('common.viewAll')}</ActionLink>}
-        />
-
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          {['hadir', 'izin', 'sakit', 'alpa'].map((code) => (
-            <div
-              key={code}
-              className="flex flex-col items-center gap-1 rounded-xl bg-bg-page py-2.5"
+          {/* Floating Pill — hanya tampil saat expanded */}
+          {!scrolled && (
+          <div className="absolute bottom-0 left-4 right-4 z-20">
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex w-full h-16 items-center justify-between rounded-full bg-white px-4 shadow-[0_8px_24px_rgba(12,74,64,0.12)] border border-[#B0E0E6]/50 cursor-pointer transition-transform active:scale-[0.99]"
             >
-              <span className={`h-2 w-2 rounded-full ${STATUS_DOT[code]}`} />
-              <span className="text-sm font-bold text-text-primary">{counts[code]}</span>
-              <span className="text-[10.5px] font-medium text-text-secondary">
-                {t(`status.${code}`)}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E6F2FF] border border-[#B0E0E6] text-lg">
+                  {currentChild?.gender === "female" ? "👧" : "👦"}
+                </div>
+                <div className="flex flex-col text-left min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-bold text-[#007BFF]">
+                      {currentChild?.name || "Pilih Siswa"}
+                    </span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#007BFF] shrink-0" />
+                  </div>
+                  <span className="truncate text-[11px] text-[#6C8EBF]">
+                    {currentChild?.classroom?.name
+                      ? `${currentChild.classroom.name} • `
+                      : ""}
+                    NIS {currentChild?.nis || "-"}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown
+                size={18}
+                className={`text-gray-400 shrink-0 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <>
+                <button
+                  type="button"
+                  aria-label={t("common.close")}
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="fixed inset-0 z-40 cursor-default"
+                />
+                <div className="absolute top-full left-0 right-0 z-50 mt-2 rounded-2xl border border-border bg-white p-2 shadow-[0_16px_36px_rgba(0,0,0,0.18)]">
+                  {children.map((c) => {
+                    const isSelected = currentChild?.id === c.id;
+                    return (
+                      <div
+                        key={c.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => pickChild(c.id)}
+                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl p-2.5 transition-colors ${
+                          isSelected
+                            ? "bg-primary-300/15 text-[#007BFF]"
+                            : "hover:bg-gray-50 text-gray-800"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E6F2FF] text-sm font-bold">
+                            {c.gender === "female" ? "👧" : "👦"}
+                          </span>
+                          <div className="flex flex-col text-left">
+                            <span className="text-sm font-bold">{c.name}</span>
+                            <span className="text-xs text-gray-500">
+                              {c.classroom?.name || "Siswa"}
+                            </span>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <Check size={16} className="text-[#007BFF]" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+          )}
+        </div>
+        <div
+          id="ortu-scroll-container"
+          className="flex w-full flex-col items-center gap-4 px-4 mt-4 overflow-y-auto pb-24"
+          style={{ height: `calc(100vh - ${scrolled ? 64 : 175}px)` }}
+          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 40)}
+        >
+          {/* 2. QUICK ACTIONS (3 CIRCULAR WHITE ICONS EXACT TO FIGMA) */}
+          <div className="flex justify-center items-center gap-7 w-full mt-2">
+            {/* Absensi */}
+            <div
+              onClick={() => navigate("/ortu/attendance")}
+              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(12,74,64,0.06)] transition-transform group-hover:scale-105 active:scale-95 text-[#007BFF]">
+                <ClipboardCheck size={28} />
+              </div>
+              <span className="text-xs font-medium text-gray-700">Absensi</span>
+            </div>
+
+            {/* Izin Sakit */}
+            <div
+              onClick={() => navigate("/ortu/leave-requests")}
+              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(12,74,64,0.06)] transition-transform group-hover:scale-105 active:scale-95 text-[#007BFF]">
+                <Stethoscope size={28} />
+              </div>
+              <span className="text-xs font-medium text-gray-700">
+                {t("studentLeave.dashboardCta")}
               </span>
             </div>
-          ))}
-        </div>
 
-        <div className="mt-4 border-t border-border pt-4">
-          <WeekStrip attendances={attendances} />
-        </div>
+            {/* Agenda — scroll ke kartu Agenda Mendatang, bukan navigasi */}
+            <div
+              onClick={() => agendaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(12,74,64,0.06)] transition-transform group-hover:scale-105 active:scale-95 text-[#007BFF]">
+                <CalendarDays size={28} />
+              </div>
+              <span className="text-xs font-medium text-gray-700">Agenda</span>
+            </div>
+          </div>
 
-        {attendances.length > 0 ? (
-          <div className="mt-4 space-y-2">
-            {attendances
-              .slice(-3)
-              .reverse()
-              .map((a, i) => (
+          {/* 2.5. BANNER SLIDESHOW */}
+          <BannerSlideshow navigate={navigate} />
+
+          {/* 3. ATTENDANCE SCHEDULE & WEEKSTRIP CARD */}
+          <div className="flex flex-col gap-3.5 bg-white rounded-[24px] p-4.5 w-full border border-[#E5EFE9] shadow-[0_8px_24px_rgba(12,74,64,0.05)]">
+            <div className="flex justify-between items-center w-full">
+              <span className="text-sm font-bold text-[#111827]">
+                Jadwal & Riwayat Minggu Ini
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate("/ortu/attendance")}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#007BFF]"
+              >
+                Riwayat
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* WeekStrip 7 Hari */}
+            <div className="flex justify-between items-center w-full gap-1">
+              {weekDays.map((day, idx) => (
                 <div
-                  key={i}
-                  className="flex items-center justify-between gap-3 rounded-xl bg-bg-page px-3.5 py-2.5"
+                  key={idx}
+                  className={`flex flex-col items-center gap-1 flex-1 py-1.5 rounded-xl border transition-all ${
+                    day.active
+                      ? "bg-[#E6F7E2] border-[#007BFF] border-2 shadow-xs"
+                      : day.attended
+                        ? "bg-[#F0FDF4] border-[#E6F2FF]"
+                        : "bg-gray-50 border-transparent"
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className={`h-2 w-2 rounded-full ${STATUS_DOT[a.status] ?? 'bg-border'}`} />
-                    <span className="text-xs font-semibold text-text-primary">
-                      {formatDate(a.date)}
-                    </span>
+                  <span
+                    className={`text-[10px] ${day.active ? "font-bold text-[#007BFF]" : day.attended ? "text-emerald-700" : "text-gray-400"}`}
+                  >
+                    {day.name}
+                  </span>
+                  <div
+                    className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      day.active
+                        ? "bg-[#007BFF] text-white"
+                        : day.attended
+                          ? "bg-[#007BFF] text-white"
+                          : "bg-gray-200 text-gray-400"
+                    }`}
+                  >
+                    {day.attended || day.active ? (
+                      <Check size={11} strokeWidth={3} />
+                    ) : (
+                      <span className="text-[9px]">-</span>
+                    )}
                   </div>
-                  <StatusBadge code={a.status} />
+                  <span
+                    className={`text-[10px] font-bold ${day.active ? "text-[#007BFF]" : "text-gray-800"}`}
+                  >
+                    {day.date}
+                  </span>
                 </div>
               ))}
-          </div>
-        ) : (
-          <p className="mt-4 rounded-xl bg-bg-page py-4 text-center text-xs text-text-secondary">
-            {t('common.noData')}
-          </p>
-        )}
-      </div>
+            </div>
 
-      {/* ═══════════════════════════════════════════════
-          ANAK SAYA — hanya relevan saat >1 anak
-      ═══════════════════════════════════════════════ */}
-      {children.length > 1 && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-bg-surface">
-          <div className="flex items-center justify-between px-4 pt-4 pb-1">
-            <h2 className="font-heading text-[15px] font-bold text-text-primary">
-              {t('navMenu.myChild')}
-            </h2>
-            <span className="rounded-full bg-primary-300/10 px-2.5 py-0.5 text-[11px] font-bold text-primary-300">
-              {children.length}
-            </span>
+            {/* Recent Entries List — data absensi asli, bukan mock */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+              {recentAttendanceEntries.length === 0 ? (
+                <p className="text-center text-[11px] text-gray-500 py-1">
+                  {t("common.noData")}
+                </p>
+              ) : (
+                recentAttendanceEntries.map(([key, row], idx) => {
+                  const isToday = key === `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+                  const tone = row.status === "hadir" ? "text-emerald-600" : row.status === "alpa" ? "text-red-600" : "text-orange-600";
+                  return (
+                    <div key={key}>
+                      {idx > 0 && <div className="h-px w-full bg-gray-100 mb-2" />}
+                      <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#007BFF]" />
+                          <span className="text-gray-800 font-medium">
+                            {formatDate(key)}{isToday ? ` (${t("common.today")})` : ""}
+                          </span>
+                        </div>
+                        <span className={`font-bold ${tone}`}>{t(`status.${row.status}`)}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
-          <div className="mt-1 divide-y divide-border">
-            {children.map((c) => {
-              const invoiceUnpaid = c.invoice && UNPAID.includes(c.invoice.status)
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveChildId(c.id)
-                    window.location.href = '/ortu/profile-anak'
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bg-page active:bg-bg-page"
-                >
-                  <Avatar child={c} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13.5px] font-semibold text-text-primary">{c.name}</p>
-                    <p className="truncate text-xs text-text-secondary">{c.classroom?.name ?? '-'}</p>
+
+          {/* 3.5. STATUS HARI INI — absensi & jemput, data asli dari /api/ortu/children */}
+          <div className="flex items-center justify-between gap-3 bg-white rounded-[24px] p-4 w-full border border-[#E5EFE9] shadow-[0_8px_24px_rgba(12,74,64,0.05)]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E6F2FF] text-[#007BFF]">
+                <UserRoundCheck size={18} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] text-gray-500">{t("ortu.pickupStatusToday")}</span>
+                {["izin", "sakit", "alpa"].includes(currentChild?.today_status) ? (
+                  <div className="flex items-center gap-1.5">
+                    <StatusBadge code={currentChild.today_status} />
+                    <span className="text-xs text-gray-600">{t("ortu.noPickupExpected")}</span>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {c.today_status && <StatusBadge code={c.today_status} />}
-                    {invoiceUnpaid && (
-                      <span className="rounded-full bg-accent-500/12 px-2 py-0.5 text-[10px] font-bold text-accent-500">
-                        {t('ortu.sppLabel')}
+                ) : (
+                  <span className="text-sm font-bold text-[#111827]">
+                    {currentChild?.picked_up_at
+                      ? t("ortu.pickedUpAt", { time: formatTime(currentChild.picked_up_at) })
+                      : t("ortu.notPickedUpYet")}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 3.6. RINGKASAN TAGIHAN — data asli dari /api/ortu/children/{id}/invoices */}
+          <div
+            onClick={() => navigate("/ortu/invoices")}
+            className="flex items-center justify-between gap-3 bg-white rounded-[24px] p-4 w-full border border-[#E5EFE9] shadow-[0_8px_24px_rgba(12,74,64,0.05)] cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FAF5FF] text-purple-600">
+                <Wallet size={18} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] text-gray-500">{t("ortu.activeInvoice")}</span>
+                {unpaidInvoices.length > 0 ? (
+                  <>
+                    <span className="text-sm font-bold text-[#111827]">{formatCurrency(outstandingTotal)}</span>
+                    {nearestDueInvoice && (
+                      <span className="truncate text-[11px] text-orange-600">
+                        {t("ortu.invoiceDueSoonDescription", {
+                          invoiceNumber: nearestDueInvoice.invoice_number,
+                          amount: formatCurrency(nearestDueInvoice.amount),
+                          date: formatDate(nearestDueInvoice.due_date),
+                        })}
                       </span>
                     )}
-                    <ChevronRight size={14} className="text-text-secondary" />
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════
-          PENJEMPUT SAH
-      ═══════════════════════════════════════════════ */}
-      {activePickups.length > 0 && (
-        <div className="space-y-3">
-          <SectionHead
-            title={t('ortu.authorizedPickupsTitle')}
-            action={<ActionLink to="/ortu/pickups">{t('navMenu.managePickups')}</ActionLink>}
-          />
-          <div className="grid grid-cols-2 gap-2.5">
-            {activePickups.slice(0, 4).map((p) => (
-              <PickupChip key={p.id} person={p} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════
-          TAGIHAN AKTIF
-      ═══════════════════════════════════════════════ */}
-      {activeInvoice && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-bg-surface">
-          <div className="p-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
-                {t('ortu.activeInvoice')}
-              </p>
-              <StatusBadge code={activeInvoice.status} />
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-emerald-600">{t("ortu.noActiveInvoice")}</span>
+                )}
+              </div>
             </div>
-            <p className="mt-2 font-heading text-[26px] font-extrabold tracking-tight text-text-primary">
-              {formatCurrency(activeInvoice.amount)}
-            </p>
-            <p className="mt-1 text-xs text-text-secondary">
-              #{activeInvoice.invoice_number} · {t('finance.dueDate')}:{' '}
-              {formatDate(activeInvoice.due_date)}
-            </p>
+            <ChevronRight size={16} className="shrink-0 text-gray-400" />
           </div>
-          <Link
-            to={`/ortu/invoices/${activeInvoice.id}`}
-            className="flex items-center justify-center gap-1.5 bg-primary-300 px-4 py-3 text-sm font-bold text-white no-underline transition-colors hover:bg-primary-400"
-          >
-            {t('ortu.payNow')}
-            <ChevronRight size={16} />
-          </Link>
-        </div>
-      )}
 
-      {/* ═══════════════════════════════════════════════
-          PENGUMUMAN
-      ═══════════════════════════════════════════════ */}
-      {announcements.length > 0 && (
-        <div className="space-y-3">
-          <SectionHead title={t('announcements.dashboardTitle')} />
-          <div className="overflow-hidden rounded-2xl border border-border bg-bg-surface">
-            <div className="divide-y divide-border">
-              {announcements.slice(0, 3).map((a, i) => (
-                <div key={a.id ?? i} className="flex gap-3 px-4 py-3.5">
-                  <div className="mt-1.5 flex flex-col items-center">
-                    <span
-                      className={`h-2 w-2 rounded-full ${i === 0 ? 'bg-primary-300' : 'bg-border'}`}
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="truncate text-[13px] font-semibold text-text-primary">
-                        {a.title}
-                      </p>
-                      {a.created_at && (
-                        <span className="shrink-0 text-[11px] text-text-secondary">
-                          {formatDate(a.created_at)}
-                        </span>
+          {/* 4. CHILDREN OVERVIEW SECTION */}
+          <div className="flex flex-col gap-2.5 w-full">
+            <div className="flex justify-between items-center w-full px-1">
+              <span className="text-sm font-bold text-[#111827]">
+                Daftar Anak ({children.length} Anak)
+              </span>
+              <span className="text-[11px] text-gray-500">
+                Pilih untuk beralih
+              </span>
+            </div>
+
+            {children.map((c) => {
+              const isActive = currentChild?.id === c.id;
+              return (
+                <div
+                  key={c.id}
+                  className={`flex flex-col gap-2.5 bg-white rounded-[20px] p-3.5 w-full shadow-sm transition-all ${
+                    isActive
+                      ? "border-2 border-[#007BFF] shadow-[0_4px_14px_rgba(0,123,255,0.08)]"
+                      : "border border-[#E5EFE9]"
+                  }`}
+                >
+                  <div
+                    onClick={() => {
+                      setActiveChildId(c.id);
+                      navigate("/ortu/profile-anak");
+                    }}
+                    className="flex justify-between items-center w-full cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {c.photo_path ? (
+                        <img
+                          src={storageUrl(c.photo_path)}
+                          alt={c.name}
+                          className="h-9 w-9 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${c.gender === "female" ? "bg-pink-100" : "bg-[#E6F2FF]"}`}
+                        >
+                          {c.gender === "female" ? "👧" : "👦"}
+                        </div>
                       )}
+                      <div className="flex flex-col text-left min-w-0">
+                        <span className="truncate text-[13px] font-bold text-[#111827]">
+                          {c.name}
+                        </span>
+                        <span className="truncate text-[11px] text-gray-500">
+                          {c.classroom?.name || "Siswa"} • NIS {c.nis || "-"}
+                        </span>
+                      </div>
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-secondary">
-                      {a.body}
-                    </p>
+
+                    <div
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        isActive
+                          ? "bg-[#ECFDF5] text-emerald-600 border border-emerald-200"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {isActive ? "Sedang Aktif" : "Di Rumah"}
+                    </div>
+                  </div>
+
+                  {/* 3 Action Buttons: Absensi, Jemput, Bayar */}
+                  <div className="flex gap-2 w-full pt-1 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveChildId(c.id);
+                        navigate("/ortu/attendance");
+                      }}
+                      className="flex flex-1 items-center justify-center gap-1 bg-[#F0FDF4] py-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100/60 transition-colors"
+                    >
+                      <CalendarCheck size={12} />
+                      <span className="text-[11px] font-semibold">Absensi</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveChildId(c.id);
+                        navigate("/ortu/pickups");
+                      }}
+                      className="flex flex-1 items-center justify-center gap-1 bg-[#FFF7ED] py-1.5 rounded-lg text-orange-600 hover:bg-orange-100/60 transition-colors"
+                    >
+                      <Car size={12} />
+                      <span className="text-[11px] font-semibold">Jemput</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveChildId(c.id);
+                        navigate("/ortu/invoices");
+                      }}
+                      className="flex flex-1 items-center justify-center gap-1 bg-[#FAF5FF] py-1.5 rounded-lg text-purple-600 hover:bg-purple-100/60 transition-colors"
+                    >
+                      <CreditCard size={12} />
+                      <span className="text-[11px] font-semibold">Bayar</span>
+                    </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* 5. AUTHORIZED PICKUPS CARD (EXACT FIGMA LAYOUT) */}
+          <div className="flex flex-col gap-3 bg-white rounded-[24px] p-4.5 w-full border border-[#E5EFE9] shadow-[0_8px_24px_rgba(12,74,64,0.05)]">
+            <div className="flex justify-between items-center w-full">
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-bold text-[#111827]">
+                  Penjemput Sah (QR)
+                </span>
+                <span className="text-[11px] text-gray-500">
+                  Terverifikasi sistem sekolah
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/ortu/pickups")}
+                className="flex items-center gap-0.5 text-[11px] font-bold text-[#007BFF]"
+              >
+                Kelola
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full">
+              {activePickups.length > 0 ? (
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex w-full gap-2">
+                    {activePickups.slice(0, 2).map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex flex-1 min-w-0 items-center gap-1.5 rounded-full bg-[#F0FDF4] border border-[#E6F2FF] px-2.5 py-1.5"
+                      >
+                        <span className="text-xs">
+                          {relationshipEmoji(p.relationship)}
+                        </span>
+                        <span className="truncate text-[11px] font-bold text-[#111827]">
+                          {p.name}{" "}
+                          <span className="font-normal text-gray-500">
+                            ({p.relationship})
+                          </span>
+                        </span>
+                        <CheckCircle
+                          size={12}
+                          className="ml-auto shrink-0 text-emerald-600"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {activePickups.length > 2 && (
+                    <div className="flex w-full">
+                      <div className="flex min-w-0 items-center gap-1.5 rounded-full bg-[#F0FDF4] border border-[#E6F2FF] px-3 py-1.5">
+                        <span className="text-xs">
+                          {relationshipEmoji(activePickups[2].relationship)}
+                        </span>
+                        <span className="truncate text-[11px] font-bold text-[#111827]">
+                          {activePickups[2].name}{" "}
+                          <span className="font-normal text-gray-500">
+                            ({activePickups[2].relationship})
+                          </span>
+                        </span>
+                        <CheckCircle
+                          size={12}
+                          className="ml-auto shrink-0 text-emerald-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-2 text-center">
+                  <p className="text-[11px] text-gray-500">{t("ortu.noPickupsRegistered")}</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/ortu/pickups")}
+                    className="text-[11px] font-bold text-[#007BFF]"
+                  >
+                    {t("ortu.addPickup")}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* 5.5. AGENDA MENDATANG — kalender akademik (hari libur/perayaan) yang diinput Admin */}
+          <div
+            ref={agendaRef}
+            className="flex flex-col gap-3 bg-white rounded-[24px] p-4.5 w-full border border-[#E5EFE9] shadow-[0_8px_24px_rgba(12,74,64,0.05)]"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FDF2F8] text-pink-600">
+                <CalendarHeart size={16} />
+              </div>
+              <span className="text-sm font-bold text-[#111827]">{t("ortu.agendaCardTitle")}</span>
+            </div>
+
+            {upcomingAgenda.length === 0 ? (
+              <p className="text-center text-[11px] text-gray-500 py-1">{t("ortu.agendaEmpty")}</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {upcomingAgenda.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-[#F9FCF8] p-2.5">
+                    <div className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-xl bg-white text-[10px] font-bold text-[#007BFF] border border-gray-100">
+                      {formatDate(item.date, { withYear: false })}
+                    </div>
+                    <span className="truncate text-xs font-medium text-[#111827]">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
-      )}
+      </div>
     </ResponsiveShell>
-  )
+  );
 }

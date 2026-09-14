@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import logo from '../../assets/guide/logo.png'
+import logo from '../../assets/guide/logo baru.svg'
 import { apiPost } from '../../lib/api'
 
 export default function ForgotPassword() {

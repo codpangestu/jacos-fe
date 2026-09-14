@@ -7,10 +7,11 @@ import { NAV_MENU_GROUPS } from '../../config/navigation'
 import DataTable from '../../components/ui/DataTable'
 import FormField from '../../components/ui/FormField'
 import Modal from '../../components/ui/Modal'
+import StatusBadge from '../../components/ui/StatusBadge'
 import { apiGet, apiPost, apiPut, apiDelete } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 
-const EMPTY_FORM = { title: '', body: '', target_role: '' }
+const EMPTY_FORM = { title: '', body: '', target_role: '', expires_at: '' }
 
 export default function AdminAnnouncements() {
   const { t } = useTranslation()
@@ -50,7 +51,12 @@ export default function AdminAnnouncements() {
   }
 
   function openEdit(row) {
-    setForm({ title: row.title, body: row.body, target_role: row.target_role ?? '' })
+    setForm({
+      title: row.title,
+      body: row.body,
+      target_role: row.target_role ?? '',
+      expires_at: row.expires_at ? row.expires_at.slice(0, 10) : '',
+    })
     setEditing(row)
     setShowForm(true)
   }
@@ -86,6 +92,19 @@ export default function AdminAnnouncements() {
           },
           { key: 'creator', label: t('announcements.createdBy'), render: (row) => row.creator?.name ?? '-' },
           { key: 'created_at', label: t('announcements.createdAt'), render: (row) => formatDate(row.created_at) },
+          {
+            key: 'expires_at',
+            label: t('announcements.expiresAt'),
+            render: (row) =>
+              row.expires_at ? (
+                <StatusBadge
+                  code={row.is_expired ? 'expired' : 'active'}
+                  label={row.is_expired ? t('status.expired') : formatDate(row.expires_at)}
+                />
+              ) : (
+                <span className="text-text-secondary">{t('announcements.noExpiry')}</span>
+              ),
+          },
           {
             key: 'actions',
             label: t('common.actions'),
@@ -155,6 +174,16 @@ export default function AdminAnnouncements() {
           <option value="staff">{t('status.staff')}</option>
           <option value="orang_tua">{t('status.orang_tua')}</option>
         </FormField>
+        <div>
+          <FormField
+            label={t('announcements.expiresAt')}
+            htmlFor="expires_at"
+            type="date"
+            value={form.expires_at}
+            onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+          />
+          <p className="mt-1 text-xs text-text-secondary">{t('announcements.expiresAtHint')}</p>
+        </div>
       </Modal>
 
       <Modal

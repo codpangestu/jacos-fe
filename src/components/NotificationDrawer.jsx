@@ -1,16 +1,25 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, BellOff, Check, ChevronRight } from 'lucide-react'
+import { Bell, BellOff, Check, ChevronRight, Megaphone } from 'lucide-react'
 import Drawer from './ui/Drawer'
 import { apiGet, apiPost } from '../lib/api'
 import { formatDateTime } from '../lib/format'
+import { getUser } from '../lib/auth'
+
+const ANNOUNCEMENT_HISTORY_URL = {
+  admin: '/admin/announcements',
+  guru: '/guru/announcements',
+  staff: '/staff/announcements',
+  orang_tua: '/ortu/announcements',
+}
 
 /** Panel notifikasi yang keluar dari sisi kanan (ported dari jacos-react Shell.jsx NotificationsDrawer). */
 export default function NotificationDrawer({ open, onClose }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const announcementHistoryUrl = ANNOUNCEMENT_HISTORY_URL[getUser()?.role]
 
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', 'drawer'],
@@ -53,6 +62,21 @@ export default function NotificationDrawer({ open, onClose }) {
           >
             <Check size={13} />
             {t('notifications.markAllRead')}
+          </button>
+        )
+      }
+      footer={
+        announcementHistoryUrl && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              navigate(announcementHistoryUrl)
+            }}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-sm font-semibold text-primary-300 hover:bg-primary-300/10"
+          >
+            <Megaphone size={15} />
+            {t('announcements.viewHistory')}
           </button>
         )
       }

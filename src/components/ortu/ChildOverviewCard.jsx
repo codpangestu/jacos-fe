@@ -1,17 +1,31 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CalendarCheck, ChevronRight, QrCode, Receipt } from 'lucide-react'
-import StatusBadge from '../ui/StatusBadge'
+import { CalendarCheck, Car, CreditCard } from 'lucide-react'
 import { setActiveChildId } from '../../lib/activeChild'
 import { storageUrl } from '../../lib/api'
-import { formatTime } from '../../lib/format'
 
 const UNPAID_STATUSES = ['belum_bayar', 'terlambat']
 
+/** Status "hari ini" ringkas ala kartu anak di homepage (bukan StatusBadge penuh). */
+function childTodayState(child) {
+  if (child.today_status === 'hadir' && !child.picked_up_at) return 'at_school'
+  if (child.picked_up_at) return 'at_home'
+  if (['izin', 'sakit', 'alpa'].includes(child.today_status)) return child.today_status
+  return 'unknown'
+}
+
+const STATE_STYLE = {
+  at_school: 'border-emerald-100 bg-emerald-50 text-emerald-600',
+  at_home: 'border-transparent bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white/70',
+  izin: 'border-accent-500/20 bg-accent-500/10 text-accent-500',
+  sakit: 'border-primary-300/20 bg-primary-300/10 text-primary-300',
+  alpa: 'border-danger-500/20 bg-danger-500/10 text-danger-500',
+  unknown: 'border-transparent bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white/70',
+}
+
 /**
- * Ported dari jacos-react parent/Dashboard.jsx: kartu ringkasan per anak
- * (bukan cuma anak yang lagi aktif) supaya ortu bisa lihat kondisi semua
- * anaknya sekilas dari Dashboard, lalu langsung aksi tanpa ke layar switcher dulu.
+ * Kartu ringkasan per anak (bukan cuma yang lagi aktif) di homepage Dashboard
+ * Ortu — avatar+status hari ini di header, 3 tombol aksi cepat berwarna.
  */
 export default function ChildOverviewCard({ child }) {
   const { t } = useTranslation()
@@ -22,94 +36,79 @@ export default function ChildOverviewCard({ child }) {
     navigate(path)
   }
 
-  const initials = child.name
-    .split(' ')
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
+  const initials = child.name.split(' ').map((w) => w[0]).slice(0, 2).join('')
   const invoiceUnpaid = child.invoice && UNPAID_STATUSES.includes(child.invoice.status)
+  const state = childTodayState(child)
+  const stateLabel =
+    state === 'at_school'
+      ? t('ortu.statusAtSchool')
+      : state === 'at_home'
+        ? t('ortu.statusAtHome')
+        : state === 'unknown'
+          ? t('ortu.statusNotRecordedShort')
+          : t(`status.${state}`)
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-surface p-5">
+    <div className="flex flex-col gap-2.5 rounded-[20px] border border-border bg-bg-surface p-3.5 shadow-sm">
       <button
         type="button"
         onClick={() => goTo('/ortu/profile-anak')}
-        className="flex w-full items-center gap-3.5 text-left"
+        className="flex w-full items-center justify-between gap-2 text-left"
       >
-        {child.photo_path ? (
-          <img src={storageUrl(child.photo_path)} alt={child.name} className="h-12 w-12 shrink-0 rounded-full object-cover" />
-        ) : (
-          <span
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-              child.gender === 'female' ? 'bg-accent-500/15 text-accent-500' : 'bg-primary-300/15 text-primary-300'
-            }`}
-          >
-            {initials}
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-bold text-text-primary">{child.name}</p>
-          <p className="truncate text-sm text-text-secondary">{child.classroom?.name ?? '-'}</p>
-        </div>
-        <ChevronRight size={16} className="shrink-0 text-text-secondary" />
-      </button>
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-bg-page p-2.5">
-          <p className="text-[10px] leading-tight font-bold uppercase text-text-secondary">{t('ortu.attendanceLabel')}</p>
-          <div className="mt-1.5">
-            {child.today_status ? <StatusBadge code={child.today_status} /> : <span className="text-xs text-text-secondary">-</span>}
-          </div>
-        </div>
-        <div className="rounded-xl bg-bg-page p-2.5">
-          <p className="text-[10px] leading-tight font-bold uppercase text-text-secondary">{t('ortu.pickupLabel')}</p>
-          <div className="mt-1.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {child.photo_path ? (
+            <img
+              src={storageUrl(child.photo_path)}
+              alt={child.name}
+              className="h-9 w-9 shrink-0 rounded-full object-cover"
+            />
+          ) : (
             <span
-              className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                child.picked_up_at ? 'bg-success-500/12 text-success-500' : 'bg-danger-500/12 text-danger-500'
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                child.gender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-primary-300/15 text-primary-300'
               }`}
             >
-              {child.picked_up_at ? formatTime(child.picked_up_at) : t('ortu.notPickedUpYet')}
+              {initials}
             </span>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-bold text-text-primary">{child.name}</p>
+            <p className="truncate text-[11px] text-text-secondary">
+              {child.classroom?.name ?? '-'}
+              {child.nis ? ` • ${t('students.nis')} ${child.nis}` : ''}
+            </p>
           </div>
         </div>
-        <div className="rounded-xl bg-bg-page p-2.5">
-          <p className="text-[10px] leading-tight font-bold uppercase text-text-secondary">{t('ortu.sppLabel')}</p>
-          <div className="mt-1.5">
-            {child.invoice ? (
-              <StatusBadge code={child.invoice.status} />
-            ) : (
-              <span className="text-xs text-text-secondary">{t('ortu.noActiveInvoice')}</span>
-            )}
-          </div>
-        </div>
-      </div>
+        <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-bold whitespace-nowrap ${STATE_STYLE[state]}`}>
+          {stateLabel}
+        </span>
+      </button>
 
-      <div className="mt-4 flex gap-2">
+      <div className="flex w-full gap-2">
         <button
           type="button"
           onClick={() => goTo('/ortu/attendance')}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:bg-bg-page"
+          className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 py-1.5"
         >
-          <CalendarCheck size={14} />
-          {t('ortu.actionAttendance')}
+          <CalendarCheck size={12} className="text-emerald-600" />
+          <span className="text-[11px] font-semibold text-emerald-600">{t('ortu.actionAttendance')}</span>
         </button>
         <button
           type="button"
           onClick={() => goTo('/ortu/pickups')}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-xs font-semibold text-text-primary hover:bg-bg-page"
+          className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-orange-50 py-1.5"
         >
-          <QrCode size={14} />
-          {t('ortu.actionPickup')}
+          <Car size={12} className="text-orange-600" />
+          <span className="text-[11px] font-semibold text-orange-700">{t('ortu.actionPickup')}</span>
         </button>
         {invoiceUnpaid && (
           <button
             type="button"
             onClick={() => goTo(`/ortu/invoices/${child.invoice.id}`)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-300 py-2 text-xs font-semibold text-white hover:bg-primary-400"
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-purple-50 py-1.5"
           >
-            <Receipt size={14} />
-            {t('ortu.payNow')}
+            <CreditCard size={12} className="text-purple-600" />
+            <span className="text-[11px] font-semibold text-purple-700">{t('ortu.actionPay')}</span>
           </button>
         )}
       </div>

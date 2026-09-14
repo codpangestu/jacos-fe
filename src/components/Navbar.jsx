@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import logo from '../assets/guide/logo.png'
+import logo from '../assets/guide/logo baru.svg'
 import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Navbar() {

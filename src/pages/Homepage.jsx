@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar'
 import buildingIllustration from '../assets/picture/building-illustration.png'
 import heroStudentsGroup from '../assets/picture/hero-students-group.png'
 import admissionBoyPhone from '../assets/picture/admission-boy-phone.png'
-import logo from '../assets/guide/logo.png'
+import logo from '../assets/guide/logo baru.svg'
 
 export default function Homepage() {
   const { t } = useTranslation()
@@ -16,7 +16,7 @@ export default function Homepage() {
       <div className="mx-auto flex max-w-360 flex-col gap-12 px-5 pb-16 max-[860px]:px-4 max-[860px]:pb-12">
         {/* Hero */}
         <div className="relative box-border h-screen pt-[78px] pb-[0px] max-[860px]:pt-[52px]">
-          <section className="relative flex h-[calc(100%-80px)] flex-col justify-end rounded-3xl bg-[#33a6f2] px-12 pt-[62px] text-white max-[860px]:h-[calc(100%-64px)] max-[860px]:px-6">
+          <section className="relative flex h-[calc(100%-80px)] flex-col justify-end rounded-3xl px-12 pt-[62px] text-white max-[860px]:h-[calc(100%-64px)] max-[860px]:px-6" style={{ background: 'linear-gradient(135deg, #007BFF 0%, #35AEFC 50%, #B0E0E6 100%)' }}>
             {/* Main content row */}
             <div className="grid flex-1 grid-cols-[55fr_45fr] items-end gap-0 max-[860px]:grid-cols-1">
               {/* Left: headline + description */}

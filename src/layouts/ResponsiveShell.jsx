@@ -17,6 +17,7 @@ export default function ResponsiveShell({
   pageTitle,
   pageSubtitle,
   headerVariant,
+  fullBleed = false,
   showSearch = true,
   sidebarAlert,
   rightRail,
@@ -27,7 +28,13 @@ export default function ResponsiveShell({
 
   if (MOBILE_ROLES.includes(role)) {
     return (
-      <MobileAppShell tabs={MOBILE_TABS[role] ?? []} pageTitle={pageTitle} pageSubtitle={pageSubtitle} headerVariant={headerVariant}>
+      <MobileAppShell
+        tabs={MOBILE_TABS[role] ?? []}
+        pageTitle={pageTitle}
+        pageSubtitle={pageSubtitle}
+        headerVariant={headerVariant}
+        fullBleed={fullBleed}
+      >
         {children}
       </MobileAppShell>
     )

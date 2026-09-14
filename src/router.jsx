@@ -26,9 +26,11 @@ import AdminDismissalSettings from './pages/admin/AdminDismissalSettings'
 import AdminAuditLog from './pages/admin/AdminAuditLog'
 import AdminConsentStatus from './pages/admin/AdminConsentStatus'
 import AdminAnnouncements from './pages/admin/AdminAnnouncements'
+import AnnouncementHistory from './pages/common/AnnouncementHistory'
 import GuruDashboard from './pages/guru/GuruDashboard'
 import GuruAttendance from './pages/guru/GuruAttendance'
 import GuruAttendanceHistory from './pages/guru/GuruAttendanceHistory'
+import GuruStudentLeaveRequests from './pages/guru/GuruStudentLeaveRequests'
 import OrtuDashboard from './pages/ortu/OrtuDashboard'
 import OrtuChildProfile from './pages/ortu/OrtuChildProfile'
 import SelectChild from './pages/ortu/SelectChild'
@@ -38,6 +40,8 @@ import OrtuPickupHistory from './pages/ortu/OrtuPickupHistory'
 import OrtuInvoices from './pages/ortu/OrtuInvoices'
 import OrtuInvoiceDetail from './pages/ortu/OrtuInvoiceDetail'
 import OrtuPaymentHistory from './pages/ortu/OrtuPaymentHistory'
+import OrtuAccount from './pages/ortu/OrtuAccount'
+import OrtuLeaveRequests from './pages/ortu/OrtuLeaveRequests'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import PickupVerify from './pages/pickup/PickupVerify'
 import SelfAttendance from './pages/self-attendance/SelfAttendance'
@@ -83,9 +87,11 @@ export const router = createBrowserRouter([
   { path: '/guru/dashboard', element: guru(<GuruDashboard />) },
   { path: '/guru/attendance', element: guru(<GuruAttendance />) },
   { path: '/guru/attendance/history', element: guru(<GuruAttendanceHistory />) },
+  { path: '/guru/student-leave-requests', element: guru(<GuruStudentLeaveRequests />) },
   { path: '/guru/pickup/verify', element: guru(<PickupVerify />) },
   { path: '/guru/attendance/self', element: guru(<SelfAttendance />) },
   { path: '/guru/leave-requests', element: guru(<LeaveRequests />) },
+  { path: '/guru/announcements', element: guru(<AnnouncementHistory />) },
   { path: '/ortu/select-child', element: <OrtuGuard requireChildSelection={false}><SelectChild /></OrtuGuard> },
   { path: '/ortu/dashboard', element: ortu(<OrtuDashboard />) },
   { path: '/ortu/profile-anak', element: ortu(<OrtuChildProfile />) },
@@ -95,9 +101,13 @@ export const router = createBrowserRouter([
   { path: '/ortu/invoices', element: ortu(<OrtuInvoices />) },
   { path: '/ortu/invoices/:id', element: ortu(<OrtuInvoiceDetail />) },
   { path: '/ortu/payments/history', element: ortu(<OrtuPaymentHistory />) },
+  { path: '/ortu/account', element: ortu(<OrtuAccount />) },
+  { path: '/ortu/leave-requests', element: ortu(<OrtuLeaveRequests />) },
+  { path: '/ortu/announcements', element: ortu(<AnnouncementHistory />) },
   { path: '/staff/dashboard', element: staff(<StaffDashboard />) },
   { path: '/staff/pickup/verify', element: staff(<PickupVerify />) },
   { path: '/staff/attendance/self', element: staff(<SelfAttendance />) },
   { path: '/staff/leave-requests', element: staff(<LeaveRequests />) },
+  { path: '/staff/announcements', element: staff(<AnnouncementHistory />) },
   { path: '*', element: <NotFound /> },
 ])

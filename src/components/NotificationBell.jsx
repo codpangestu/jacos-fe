@@ -5,8 +5,16 @@ import { useTranslation } from 'react-i18next'
 import { apiGet } from '../lib/api'
 import NotificationDrawer from './NotificationDrawer'
 
-/** Bell icon topbar dengan badge unread count (FR-FE-1.5 dst) — klik buka drawer notifikasi dari sisi kanan. */
-export default function NotificationBell() {
+const VARIANT_STYLES = {
+  default: 'relative rounded-full p-2 text-text-secondary hover:bg-primary-300/10',
+  hero: 'relative flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30',
+}
+
+/**
+ * Bell icon topbar dengan badge unread count (FR-FE-1.5 dst) — klik buka drawer notifikasi dari sisi kanan.
+ * `className` opsional buat nambah/override spacing (padding/margin) dari pemanggil, tanpa ubah komponen ini.
+ */
+export default function NotificationBell({ variant = 'default', className = '' }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const { data } = useQuery({
@@ -22,7 +30,7 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="relative rounded-full p-2 text-text-secondary hover:bg-primary-300/10"
+        className={`${VARIANT_STYLES[variant] ?? VARIANT_STYLES.default} ${className}`}
         aria-label={t('nav.notifications')}
       >
         <Bell size={20} />
