@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     <DashboardLayout
       menuGroups={menuGroups}
       pageTitle={t('dashboard.title')}
-      pageSubtitle={formatDateLong(new Date().toISOString())}
+      pageSubtitle={formatDateLong(today)}
       sidebarAlert={
         pendingLeaves.length > 0
           ? {

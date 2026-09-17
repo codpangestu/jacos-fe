@@ -7,7 +7,7 @@ import StatCard from '../../components/dashboard/StatCard'
 import ListCard from '../../components/dashboard/ListCard'
 import { getUser } from '../../lib/auth'
 import { apiGet } from '../../lib/api'
-import { formatDateLong, formatTime } from '../../lib/format'
+import { formatDateLong, formatTime, todayInputValue } from '../../lib/format'
 
 function greetingKey() {
   const hour = new Date().getHours()
@@ -44,7 +44,7 @@ export default function StaffDashboard() {
   return (
     <ResponsiveShell
       pageTitle={t(greetingKey(), { name: staffName })}
-      pageSubtitle={formatDateLong(new Date().toISOString())}
+      pageSubtitle={formatDateLong(todayInputValue())}
       headerVariant="greeting"
       showSearch={false}
     >

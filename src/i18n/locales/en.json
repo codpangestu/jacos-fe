@@ -265,7 +265,10 @@
     "teacherTitle": "Student Leave Requests",
     "teacherEmpty": "No leave requests from parents right now.",
     "attachmentHint": "You can attach a photo/scan of a doctor's note (optional).",
-    "reviewNote": "Homeroom Teacher's Note"
+    "reviewNote": "Homeroom Teacher's Note",
+    "pendingTitle": "Leave/Sick Requests Awaiting Review",
+    "pendingDescription": "{{count}} student leave/sick request(s) from parents haven't been reviewed yet.",
+    "reviewNow": "Review Now"
   },
   "staff": {
     "title": "Staff/Teacher Data",

@@ -265,7 +265,10 @@
     "teacherTitle": "Pengajuan Izin Siswa",
     "teacherEmpty": "Tidak ada pengajuan izin dari orang tua saat ini.",
     "attachmentHint": "Bisa lampirkan foto/scan surat sakit (opsional).",
-    "reviewNote": "Catatan Wali Kelas"
+    "reviewNote": "Catatan Wali Kelas",
+    "pendingTitle": "Pengajuan Izin/Sakit Menunggu Review",
+    "pendingDescription": "{{count}} pengajuan izin/sakit siswa dari orang tua belum direview.",
+    "reviewNow": "Review Sekarang"
   },
   "staff": {
     "title": "Data Staff/Guru",

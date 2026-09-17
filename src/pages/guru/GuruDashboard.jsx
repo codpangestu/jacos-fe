@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { CalendarCheck, QrCode, School, UserCheck } from 'lucide-react'
+import { QrCode, School, UserCheck } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import StatCard from '../../components/dashboard/StatCard'
 import ProgressCard from '../../components/dashboard/ProgressCard'
 import TableCard from '../../components/dashboard/TableCard'
 import ListCard from '../../components/dashboard/ListCard'
 import HighlightCard from '../../components/dashboard/HighlightCard'
+import FormField from '../../components/ui/FormField'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet } from '../../lib/api'
 import { todayInputValue, formatDateLong } from '../../lib/format'
@@ -26,18 +28,21 @@ export default function GuruDashboard() {
     queryKey: ['guru', 'classrooms'],
     queryFn: () => apiGet('/api/guru/classrooms'),
   })
-  const classroom = classroomsData?.classrooms?.[0]
+  const classrooms = classroomsData?.classrooms ?? []
+  const [selectedClassroomId, setSelectedClassroomId] = useState(null)
+  const classroomId = selectedClassroomId ?? classrooms[0]?.id ?? null
+  const classroom = classrooms.find((c) => c.id === classroomId)
 
   const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
-    queryKey: ['guru', 'attendance', classroom?.id, today],
-    queryFn: () => apiGet(`/api/classrooms/${classroom.id}/attendance`, { date: today }),
-    enabled: !!classroom,
+    queryKey: ['guru', 'attendance', classroomId, today],
+    queryFn: () => apiGet(`/api/classrooms/${classroomId}/attendance`, { date: today }),
+    enabled: !!classroomId,
   })
 
   const { data: notPickedUpData } = useQuery({
-    queryKey: ['pickup', 'not-picked-up'],
-    queryFn: () => apiGet('/api/students/not-picked-up'),
-    enabled: !!classroom,
+    queryKey: ['pickup', 'not-picked-up', classroomId],
+    queryFn: () => apiGet('/api/students/not-picked-up', { classroom_id: classroomId }),
+    enabled: !!classroomId,
   })
 
   const { data: announcementsData } = useQuery({
@@ -45,6 +50,12 @@ export default function GuruDashboard() {
     queryFn: () => apiGet('/api/announcements'),
   })
   const announcements = announcementsData?.announcements ?? []
+
+  const { data: pendingStudentLeaveData } = useQuery({
+    queryKey: ['guru', 'student-leave-requests', 'pending'],
+    queryFn: () => apiGet('/api/guru/student-leave-requests', { status: 'pending' }),
+  })
+  const pendingStudentLeaveCount = pendingStudentLeaveData?.total ?? 0
 
   const students = attendanceData?.students ?? []
   const totalStudents = students.length
@@ -57,14 +68,31 @@ export default function GuruDashboard() {
     color: STATUS_COLOR[code],
   }))
 
-  const notPickedUp = (notPickedUpData?.students ?? []).filter((s) => s.classroom_id === classroom?.id)
+  const notPickedUp = notPickedUpData?.students ?? []
 
   return (
     <DashboardLayout
       menuGroups={NAV_MENU_GROUPS.guru}
       pageTitle={t('dashboard.title')}
-      pageSubtitle={formatDateLong(new Date().toISOString())}
+      pageSubtitle={formatDateLong(today)}
     >
+      {classrooms.length > 1 && (
+        <FormField
+          as="select"
+          label={t('attendance.classroom')}
+          htmlFor="classroom"
+          value={classroomId ?? ''}
+          onChange={(e) => setSelectedClassroomId(Number(e.target.value))}
+          className="w-56"
+        >
+          {classrooms.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </FormField>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           icon={School}
@@ -95,6 +123,15 @@ export default function GuruDashboard() {
         />
       )}
 
+      {pendingStudentLeaveCount > 0 && (
+        <HighlightCard
+          title={t('studentLeave.pendingTitle')}
+          description={t('studentLeave.pendingDescription', { count: pendingStudentLeaveCount })}
+          ctaLabel={t('studentLeave.reviewNow')}
+          ctaTo="/guru/student-leave-requests"
+        />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <ProgressCard title={t('dashboard.attendanceDistribution')} items={distribution} />
         <TableCard
@@ -109,11 +146,6 @@ export default function GuruDashboard() {
             status: { label: t('dashboard.notPickedUp'), tone: 'danger' },
           }))}
         />
-      </div>
-
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-bg-surface p-4 text-sm text-text-secondary">
-        <CalendarCheck size={16} />
-        <span>{t('dashboard.leaveReminder')}</span>
       </div>
 
       {announcements.length > 0 && (
