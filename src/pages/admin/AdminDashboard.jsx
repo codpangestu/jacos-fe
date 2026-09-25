@@ -1,64 +1,111 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  AlertTriangle,
-  BellRing,
-  CalendarCheck,
-  QrCode,
-  Receipt,
-  UserCheck,
-} from 'lucide-react'
+import { AlertTriangle, CalendarRange, CalendarX2, Receipt, UserCog } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import StatCard from '../../components/dashboard/StatCard'
-import ProgressCard from '../../components/dashboard/ProgressCard'
-import TableCard from '../../components/dashboard/TableCard'
-import ListCard from '../../components/dashboard/ListCard'
-import ActivityTimelineCard from '../../components/dashboard/ActivityTimelineCard'
-import HighlightCard from '../../components/dashboard/HighlightCard'
-import GreetingBanner from '../../components/dashboard/GreetingBanner'
-import QuickActions from '../../components/dashboard/QuickActions'
-import AttendanceByClassCard from '../../components/dashboard/AttendanceByClassCard'
-import FinanceSummaryCard from '../../components/dashboard/FinanceSummaryCard'
+import CommandHero from '../../components/dashboard/CommandHero'
+import ActionTileCard from '../../components/dashboard/ActionTileCard'
+import AttendanceReminderCard from '../../components/dashboard/AttendanceReminderCard'
+import NotificationsCard from '../../components/dashboard/NotificationsCard'
+import ClassStatusCard from '../../components/dashboard/ClassStatusCard'
+import GaugeCard from '../../components/dashboard/GaugeCard'
+import PickupMonitorCard from '../../components/dashboard/PickupMonitorCard'
+import AgendaHighlightCard from '../../components/dashboard/AgendaHighlightCard'
+import ModulePlaceholderCard from '../../components/dashboard/ModulePlaceholderCard'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet, apiPost } from '../../lib/api'
-import { formatCurrency, formatDateLong, formatDateTime, formatPeriod, todayInputValue } from '../../lib/format'
-import { getUser } from '../../lib/auth'
+import { formatCurrency, formatDate, formatDateLong, todayInputValue } from '../../lib/format'
+import { getUser, ROLE_LABEL } from '../../lib/auth'
 
 const menuGroups = NAV_MENU_GROUPS.admin
 
-const STATUS_COLOR = {
-  hadir: 'var(--color-success-500)',
-  izin: 'var(--color-accent-500)',
-  sakit: 'var(--color-primary-100)',
-  alpa: 'var(--color-danger-500)',
-}
-
+/**
+ * Dashboard Admin — disusun ulang mengikuti frame Figma
+ * "🖥️ JACOS Admin - Modern Command Center" (node 33:567).
+ *
+ * Susunan: hero + 3 kartu aksi → 3 kolom tengah (notifikasi / pengingat
+ * absensi / kalender) → 3 modul bawah (status rombel / highlight pengumuman /
+ * gauge + monitoring penjemputan).
+ *
+ * Yang TIDAK diadopsi dari Figma beserta alasannya:
+ * - "Top Navigation Bar" horizontal → fungsinya sudah ada di topbar
+ *   DashboardLayout; CTA "Buat Pengumuman" dipindah ke CommandHero.
+ * - Kartu "Konsultasi Wali Santri" → tidak ada endpoint-nya; kartu birunya
+ *   dialihkan untuk pengumuman terbaru (data nyata).
+ * - "Guru Pengganti" & "Kalender & Agenda" → belum ada endpoint backend-nya,
+ *   dirender sebagai placeholder eksplisit (tanpa angka contoh).
+ *
+ * Status error sengaja dibedakan dari nilai 0: kalau query gagal, komponen
+ * menerima isLoading=true sehingga menampilkan "-", bukan "0 siswa" yang bisa
+ * salah dibaca sebagai kondisi nyata.
+ */
 export default function AdminDashboard() {
   const { t } = useTranslation()
   const today = todayInputValue()
   const storedUser = getUser()
-  const userName = storedUser?.name ?? 'Admin'
+  const userName = storedUser?.name ?? t('nav.defaultUserName')
+  const roleLabel = ROLE_LABEL[storedUser?.role] ?? '-'
   const queryClient = useQueryClient()
 
-  // Track kelas mana yang sudah dikirim reminder (reset tiap muat halaman)
   const [reminded, setReminded] = useState({})
 
-  // ── Data fetching — 1 request, bukan N+1 ─────────────────────────────────
+  // ── Query ────────────────────────────────────────────────────────────────
 
-  const { data: attendanceSummary } = useQuery({
+  const attendanceQuery = useQuery({
     queryKey: ['admin', 'attendance', 'today-summary', today],
     queryFn: () => apiGet('/api/admin/reports/attendance/today-summary', { date: today }),
   })
+  const attendanceSummary = attendanceQuery.data
 
-  // Submission status — kelas yang belum/belum selesai input absensi hari ini
-  const { data: submissionData } = useQuery({
+  const submissionQuery = useQuery({
     queryKey: ['admin', 'attendance', 'submission-status', today],
     queryFn: () => apiGet('/api/admin/attendance/submission-status', { date: today }),
   })
-  const incompleteClasses = (submissionData?.classrooms ?? []).filter(
+  const incompleteClasses = (submissionQuery.data?.classrooms ?? []).filter(
     (c) => c.status === 'not_started' || c.status === 'partial',
   )
+
+  const pickupQuery = useQuery({
+    queryKey: ['pickup', 'not-picked-up'],
+    queryFn: () => apiGet('/api/students/not-picked-up'),
+  })
+  const notPickedUp = pickupQuery.data?.students ?? []
+
+  const leaveQuery = useQuery({
+    queryKey: ['admin', 'leave-requests', 'pending'],
+    queryFn: () => apiGet('/api/staff/leave-requests', { status: 'pending' }),
+  })
+  const pendingLeaves = leaveQuery.data?.data ?? []
+
+  const financeQuery = useQuery({
+    queryKey: ['admin', 'finance', 'dashboard'],
+    queryFn: () => apiGet('/api/admin/finance/dashboard'),
+  })
+  const financeData = financeQuery.data
+
+  const announcementsQuery = useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => apiGet('/api/announcements'),
+  })
+  const announcements = announcementsQuery.data?.announcements ?? []
+
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications', 'dashboard'],
+    queryFn: () => apiGet('/api/notifications'),
+  })
+  const notifications = (notificationsQuery.data?.data ?? []).slice(0, 4)
+  const unreadCount = notificationsQuery.data?.unread_count ?? 0
+
+  const dismissalQuery = useQuery({
+    queryKey: ['admin', 'dismissal-setting'],
+    queryFn: () => apiGet('/api/admin/settings/dismissal-cutoff'),
+  })
+
+  // Query yang kegagalannya membuat seluruh halaman menampilkan angka palsu.
+  const criticalQueries = [attendanceQuery, submissionQuery, financeQuery]
+  const hasCriticalError = criticalQueries.some((q) => q.isError)
+
+  // ── Aksi ─────────────────────────────────────────────────────────────────
 
   const remindMutation = useMutation({
     mutationFn: (classroomId) => apiPost(`/api/admin/classrooms/${classroomId}/attendance/remind`),
@@ -68,70 +115,72 @@ export default function AdminDashboard() {
     },
   })
 
+  // Backend belum punya endpoint bulk reminder, jadi tombol "kirim ke semua"
+  // memanggil endpoint per-rombel yang sama untuk tiap rombel yang punya wali
+  // kelas. Hanya rombel tanpa wali yang dilewati (endpoint akan menolaknya).
+  const remindAllMutation = useMutation({
+    mutationFn: async (classroomIds) => {
+      await Promise.all(
+        classroomIds.map((id) => apiPost(`/api/admin/classrooms/${id}/attendance/remind`)),
+      )
+      return classroomIds
+    },
+    onSuccess: (classroomIds) => {
+      setReminded((prev) => {
+        const next = { ...prev }
+        classroomIds.forEach((id) => {
+          next[id] = true
+        })
+        return next
+      })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'attendance', 'submission-status'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+
+  const markReadMutation = useMutation({
+    mutationFn: (id) => apiPost(`/api/notifications/${id}/read`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => apiPost('/api/notifications/read-all'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+
+  // ── Turunan data ─────────────────────────────────────────────────────────
+
   const totalStudents = attendanceSummary?.total_students ?? 0
-  const hadirCount    = attendanceSummary?.hadir ?? 0
+  const hadirCount = attendanceSummary?.hadir ?? 0
   const attendancePct = totalStudents > 0 ? Math.round((hadirCount / totalStudents) * 100) : 0
 
-  // Breakdown per kelas dari response agregasi
-  const attendanceByClass = (attendanceSummary?.by_classroom ?? [])
+  const submissionById = new Map(
+    (submissionQuery.data?.classrooms ?? []).map((c) => [c.classroom_id, c]),
+  )
+
+  const classRows = (attendanceSummary?.by_classroom ?? [])
     .filter((r) => r.total > 0)
-    .map((r) => ({ className: r.classroom_name, hadir: r.hadir, total: r.total }))
+    .map((r) => {
+      const sub = submissionById.get(r.classroom_id)
+      const notMarked = sub ? Math.max(sub.total_students - sub.marked, 0) : null
+      return {
+        id: r.classroom_id,
+        name: r.classroom_name,
+        meta: sub?.homeroom_teacher
+          ? t('dashboard.classStatusMeta', { teacher: sub.homeroom_teacher, count: r.total })
+          : t('dashboard.classStatusNoTeacher', { count: r.total }),
+        pct: r.total > 0 ? Math.round((r.hadir / r.total) * 100) : 0,
+        trailing:
+          notMarked === null
+            ? '-'
+            : notMarked === 0
+              ? t('dashboard.classStatusAll')
+              : t('dashboard.classStatusPending', { count: notMarked }),
+      }
+    })
 
-  // ── Lainnya ───────────────────────────────────────────────────────────────
-
-  const { data: notPickedUpData } = useQuery({
-    queryKey: ['pickup', 'not-picked-up'],
-    queryFn: () => apiGet('/api/students/not-picked-up'),
-  })
-  const notPickedUp = notPickedUpData?.students ?? []
-
-  const { data: leaveData } = useQuery({
-    queryKey: ['admin', 'leave-requests', 'pending'],
-    queryFn: () => apiGet('/api/staff/leave-requests', { status: 'pending' }),
-  })
-  const pendingLeaves = leaveData?.data ?? []
-
-  const { data: financeData } = useQuery({
-    queryKey: ['admin', 'finance', 'dashboard'],
-    queryFn: () => apiGet('/api/admin/finance/dashboard'),
-  })
-
-  const { data: announcementsData } = useQuery({
-    queryKey: ['announcements'],
-    queryFn: () => apiGet('/api/announcements'),
-  })
-  const announcements = announcementsData?.announcements ?? []
-
-  const { data: auditData } = useQuery({
-    queryKey: ['admin', 'audit-log', 'recent'],
-    queryFn: () => apiGet('/api/admin/audit-log'),
-  })
-  const recentActivity = auditData?.data ?? []
-
-  // ── Kalkulasi distribusi kehadiran — dari data agregasi ──────────────────
-
-  const distribution = ['hadir', 'izin', 'sakit', 'alpa'].map((code) => ({
-    label: t(`status.${code}`),
-    value: totalStudents > 0 ? Math.round(((attendanceSummary?.[code] ?? 0) / totalStudents) * 100) : 0,
-    color: STATUS_COLOR[code],
-  }))
-
-  // ── Delta stat cards ──────────────────────────────────────────────────────
-  // Persentase kehadiran hari ini sebagai delta indicator
-  const attendanceDelta = totalStudents > 0
-    ? { value: `${attendancePct}%`, direction: attendancePct >= 80 ? 'up' : 'down' }
-    : undefined
-
-  // ── Quick actions ─────────────────────────────────────────────────────────
-  const quickActions = [
-    { label: 'Absensi Hari Ini', to: '/admin/reports/attendance', icon: UserCheck },
-    { label: 'Approve Cuti', to: '/admin/leave-requests', icon: CalendarCheck, badge: pendingLeaves.length },
-    { label: 'Log Penjemputan', to: '/admin/pickup-logs', icon: QrCode },
-    { label: 'Invoice', to: '/admin/finance/invoices', icon: Receipt },
-  ]
-
-  // ── Finance data ──────────────────────────────────────────────────────────
-  const financePeriod = financeData?.period ? formatPeriod(financeData.period) : ''
+  const latestAnnouncement = announcements[0]
+  const cutoffTime = dismissalQuery.data?.setting?.cutoff_time?.slice(0, 5)
 
   return (
     <DashboardLayout
@@ -148,220 +197,166 @@ export default function AdminDashboard() {
             }
           : undefined
       }
-      rightRail={
-        <>
-          {/* Pending leave list */}
-          {pendingLeaves.length > 0 && (
-            <div className="rounded-2xl border border-border bg-bg-surface p-5">
-              <h3 className="font-heading text-sm font-bold text-text-primary">
-                {t('dashboard.pendingLeaveTitle')}
-              </h3>
-              <ul className="mt-4 divide-y divide-border">
-                {pendingLeaves.slice(0, 5).map((lr) => (
-                  <li key={lr.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-xs font-semibold text-primary-fg">
-                      {lr.staff?.name?.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-text-primary">{lr.staff?.name}</p>
-                      <p className="truncate text-xs text-text-secondary">{t(`status.${lr.type}`, lr.type)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="/admin/leave-requests"
-                className="mt-2 block text-xs font-semibold text-primary-fg hover:underline"
-              >
-                {t('common.viewAll')}
-              </a>
-            </div>
-          )}
-
-          {/* Overdue invoice highlight */}
-          {financeData && financeData.overdue_count > 0 && (
-            <HighlightCard
-              title={t('dashboard.overdueInvoiceTitle')}
-              description={t('dashboard.overdueInvoiceDescription', {
-                count: financeData.overdue_count,
-                amount: formatCurrency(financeData.total_outstanding),
-              })}
-              ctaLabel={t('finance.dashboardTitle')}
-              ctaTo="/admin/finance/dashboard"
-            />
-          )}
-
-          {/* Finance summary mini */}
-          {financeData && (
-            <FinanceSummaryCard
-              totalBilled={financeData.total_billed ?? financeData.total_invoiced ?? 0}
-              totalPaid={financeData.total_paid ?? 0}
-              totalOutstanding={financeData.total_outstanding ?? 0}
-              overdueCount={financeData.overdue_count ?? 0}
-              periodLabel={financePeriod}
-            />
-          )}
-
-          {/* Activity timeline — selalu ada sebagai fallback right rail */}
-          <ActivityTimelineCard
-            title={t('dashboard.recentActivity')}
-            viewAllTo="/admin/audit-log"
-            items={recentActivity.slice(0, 5).map((a) => ({
-              time: formatDateTime(a.created_at),
-              who: a.user?.name ?? '-',
-              action: a.action,
-            }))}
-          />
-        </>
-      }
     >
-      {/* ── 1. Greeting banner ── */}
-      <GreetingBanner
-        name={userName}
-        dateLabel={formatDateLong(today)}
-        academicYear={financeData?.academic_year ?? undefined}
-      />
-
-      {/* ── 2. Quick actions ── */}
-      <QuickActions actions={quickActions} />
-
-      {/* ── 3. Alert: kelas yang belum/belum selesai input absensi ── */}
-      {incompleteClasses.length > 0 && (
-        <div className="rounded-2xl border border-accent-500/30 bg-accent-500/8 p-5">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-accent-fg" />
-            <div className="min-w-0 flex-1">
-              <p className="font-heading text-sm font-bold text-text-primary">
-                {incompleteClasses.length} Kelas Belum Selesai Input Absensi
-              </p>
-              <p className="mt-0.5 text-xs text-text-secondary">
-                Hari ini, {incompleteClasses.length} rombel belum mengisi absensi lengkap.
-                Kirim pengingat ke wali kelas atau cek halaman status pengisian.
-              </p>
-
-              {/* Daftar kelas ringkas */}
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {incompleteClasses.map((c) => (
-                  <li
-                    key={c.classroom_id}
-                    className="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-bg-surface px-3 py-1.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-text-primary">{c.classroom_name}</p>
-                      <p className="text-[11px] text-text-secondary">
-                        {c.homeroom_teacher ?? 'Tanpa wali kelas'} ·{' '}
-                        {c.status === 'not_started'
-                          ? 'Belum diisi'
-                          : `${c.marked}/${c.total_students} diisi`}
-                      </p>
-                    </div>
-                    {/* Tombol remind per kelas */}
-                    <button
-                      type="button"
-                      disabled={!c.homeroom_teacher_id || remindMutation.isPending || reminded[c.classroom_id]}
-                      title={!c.homeroom_teacher_id ? 'Belum ada wali kelas' : undefined}
-                      onClick={() => remindMutation.mutate(c.classroom_id)}
-                      className="ml-1 flex shrink-0 items-center gap-1 rounded-md bg-accent-500/15 px-2 py-1 text-[11px] font-semibold text-accent-fg transition-opacity hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <BellRing size={11} />
-                      {reminded[c.classroom_id] ? 'Terkirim' : 'Ingatkan'}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="/admin/attendance/submission-status"
-                className="mt-3 inline-block text-xs font-semibold text-accent-fg hover:underline"
-              >
-                Lihat semua status pengisian →
-              </a>
-            </div>
+      {hasCriticalError && (
+        <div className="flex items-start gap-3 rounded-2xl border border-danger-500/30 bg-danger-500/8 p-4">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-danger-fg" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-text-primary">{t('dashboard.loadError')}</p>
+            <button
+              type="button"
+              onClick={() => criticalQueries.forEach((q) => q.refetch())}
+              className="mt-2 cursor-pointer rounded-md bg-danger-500/15 px-2.5 py-1 text-xs font-semibold text-danger-fg transition-colors hover:bg-danger-500/25"
+            >
+              {t('dashboard.retry')}
+            </button>
           </div>
         </div>
       )}
 
-      {/* ── 4. Stat cards ── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          icon={UserCheck}
-          label={t('dashboard.attendanceToday')}
-          value={totalStudents > 0 ? `${hadirCount}/${totalStudents}` : '-'}
-          tone="primary"
-          delta={attendanceDelta}
-        />
-        <StatCard
-          icon={QrCode}
-          label={t('dashboard.notPickedUp')}
-          value={t('dashboard.studentsCount', { count: notPickedUp.length })}
-          tone="danger"
-          delta={
-            notPickedUp.length === 0
-              ? { value: 'Semua terjemput', direction: 'up' }
-              : undefined
+      {/* ── 1. Hero + kartu aksi ── */}
+      <CommandHero
+        name={userName}
+        roleBadge={roleLabel}
+        headline={t('dashboard.heroHeadline')}
+        subtitle={t('dashboard.heroSubtitle')}
+        ctaLabel={t('dashboard.newAnnouncement')}
+        ctaTo="/admin/announcements"
+      >
+        <ActionTileCard
+          icon={CalendarX2}
+          tone="indigo"
+          title={t('dashboard.actionLeaveTitle')}
+          meta={
+            pendingLeaves.length > 0
+              ? t('dashboard.actionLeaveMeta', { count: pendingLeaves.length })
+              : t('dashboard.actionLeaveMetaEmpty')
           }
+          to="/admin/leave-requests"
         />
-        <StatCard
-          icon={CalendarCheck}
-          label={t('dashboard.pendingLeaveStat')}
-          value={t('dashboard.pendingLeaveValue', { count: pendingLeaves.length })}
-          tone="accent"
-        />
-        <StatCard
+        <ActionTileCard
           icon={Receipt}
-          label={t('dashboard.overdueInvoiceStat')}
-          value={t('dashboard.overdueInvoiceValue', { count: financeData?.overdue_count ?? 0 })}
-          tone="navy"
+          tone="amber"
+          title={t('dashboard.actionInvoiceTitle')}
+          meta={t('dashboard.actionInvoiceMeta', { count: financeData?.overdue_count ?? 0 })}
+          to="/admin/finance/invoices"
         />
-      </div>
+        {/* Modul "Guru Pengganti" ada di Figma tapi belum ada endpoint-nya. */}
+        <ActionTileCard
+          icon={UserCog}
+          title={t('dashboard.actionSubstituteTitle')}
+          meta={t('dashboard.moduleUnavailable')}
+          unavailable
+        />
+      </CommandHero>
 
-      {/* ── 5. Attendance distribution + not picked up ── */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ProgressCard
-          title={t('dashboard.attendanceDistribution')}
-          caption={
-            totalStudents > 0
-              ? `${hadirCount} dari ${totalStudents} siswa hadir hari ini (${attendancePct}%)`
-              : undefined
-          }
-          items={distribution}
-        />
-        <TableCard
-          title={t('dashboard.notPickedUpSchoolWide')}
-          viewAllTo="/admin/pickup-logs"
-          columns={[
-            { key: 'name', label: t('dashboard.name') },
-            { key: 'classroom', label: t('students.classroom') },
-            { key: 'status', label: t('common.status') },
-          ]}
-          rows={notPickedUp.slice(0, 8).map((s) => ({
-            name: s.name,
-            classroom: s.classroom?.name,
-            status: { label: t('dashboard.notPickedUp'), tone: 'danger' },
-          }))}
-        />
-      </div>
-
-      {/* ── 6. Attendance breakdown per kelas ── */}
-      {attendanceByClass.length > 0 && (
-        <AttendanceByClassCard
-          title="Kehadiran per Kelas Hari Ini"
-          rows={attendanceByClass}
-        />
-      )}
-
-      {/* ── 7. Announcements (naik ke main area, lebih visible) ── */}
-      {announcements.length > 0 && (
-        <ListCard
-          title={t('announcements.dashboardTitle')}
+      {/* ── 2. Kolom tengah ── */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <NotificationsCard
+          items={notifications}
+          unread={unreadCount}
+          isLoading={notificationsQuery.isPending}
+          onMarkAllRead={() => markAllReadMutation.mutate()}
+          onItemClick={(id) => markReadMutation.mutate(id)}
           viewAllTo="/admin/announcements"
-          items={announcements.map((a) => ({
-            initials: a.title.slice(0, 2).toUpperCase(),
-            primary: a.title,
-            secondary: a.body,
-          }))}
         />
-      )}
+
+        <AttendanceReminderCard
+          classes={incompleteClasses}
+          reminded={reminded}
+          onRemind={(id) => remindMutation.mutate(id)}
+          onRemindAll={() =>
+            remindAllMutation.mutate(
+              incompleteClasses.filter((c) => c.homeroom_teacher_id).map((c) => c.classroom_id),
+            )
+          }
+          isPending={remindMutation.isPending}
+          isBulkPending={remindAllMutation.isPending}
+          viewAllTo="/admin/attendance/submission-status"
+        />
+
+        <ModulePlaceholderCard
+          title={t('dashboard.calendarTitle')}
+          icon={CalendarRange}
+          message={t('dashboard.calendarUnavailable')}
+          ctaLabel={t('navMenu.academicYears')}
+          ctaTo="/admin/academic-years"
+        />
+      </div>
+
+      {/* ── 3. Baris bawah ── */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-6">
+          <ClassStatusCard
+            title={t('dashboard.classStatusTitle')}
+            rows={classRows}
+            viewAllTo="/admin/reports/attendance"
+          />
+        </div>
+
+        <div className="lg:col-span-2">
+          <AgendaHighlightCard
+            title={
+              latestAnnouncement
+                ? latestAnnouncement.title
+                : t('dashboard.announcementHighlightTitle')
+            }
+            description={
+              latestAnnouncement ? latestAnnouncement.body : t('dashboard.announcementHighlightEmpty')
+            }
+            meta={latestAnnouncement ? formatDate(latestAnnouncement.created_at) : undefined}
+            ctaLabel={t('dashboard.announcementHighlightCta')}
+            ctaTo={latestAnnouncement ? '/admin/announcements' : undefined}
+            empty={!latestAnnouncement}
+          />
+        </div>
+
+        <div className="flex flex-col gap-4 lg:col-span-4">
+          <div className="grid grid-cols-2 gap-4">
+            <GaugeCard
+              label={t('dashboard.gaugeAttendanceLabel')}
+              value={attendancePct}
+              tone="indigo"
+              isLoading={attendanceQuery.isPending || attendanceQuery.isError}
+              caption={
+                totalStudents > 0
+                  ? t('dashboard.gaugeAttendanceCaption', {
+                      present: hadirCount,
+                      total: totalStudents,
+                    })
+                  : t('dashboard.gaugeNoData')
+              }
+              ctaLabel={t('dashboard.gaugeAttendanceCta')}
+              ctaTo="/admin/reports/attendance"
+            />
+            <GaugeCard
+              label={t('dashboard.gaugeFinanceLabel')}
+              value={financeData?.collection_rate ?? 0}
+              tone="blue"
+              isLoading={financeQuery.isPending || financeQuery.isError}
+              caption={
+                financeData
+                  ? t('dashboard.gaugeFinanceCaption', {
+                      count: financeData.overdue_count ?? 0,
+                      amount: formatCurrency(financeData.total_outstanding ?? 0),
+                    })
+                  : t('dashboard.gaugeNoData')
+              }
+              ctaLabel={t('dashboard.gaugeFinanceCta')}
+              ctaTo="/admin/finance/dashboard"
+            />
+          </div>
+
+          <PickupMonitorCard
+            cutoffTime={cutoffTime}
+            students={notPickedUp}
+            isLoading={pickupQuery.isPending}
+            isError={pickupQuery.isError}
+            logTo="/admin/pickup-logs"
+            settingsTo="/admin/settings/dismissal-cutoff"
+          />
+        </div>
+      </div>
     </DashboardLayout>
   )
 }

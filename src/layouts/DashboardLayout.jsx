@@ -8,7 +8,6 @@ import {
   Mic,
   Moon,
   PanelLeftClose,
-  PanelLeftOpen,
   Search,
   Settings,
   Sun,
@@ -20,6 +19,7 @@ import { logout as apiLogout } from '../lib/api'
 import { clearUser, getUser, ROLE_LABEL } from '../lib/auth'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import NotificationBell from '../components/NotificationBell'
+import OrganicWaveSidebar from '../components/OrganicWaveSidebar'
 
 export default function DashboardLayout({
   menuGroups,
@@ -34,7 +34,10 @@ export default function DashboardLayout({
   const { isDark, toggle } = useDarkMode()
   const location = useLocation()
   const navigate = useNavigate()
-  const [collapsed, setCollapsed] = useState(false)
+  // Default EXPANDED (240px). Rail ikon-only (OrganicWaveSidebar) hanya muncul
+  // kalau user sendiri yang menekan collapse — sebelumnya `!== 'false'` bikin
+  // rail jadi state awal, jadi sidebar 240px praktis tidak pernah terlihat.
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
   const [mobileOpen, setMobileOpen] = useState(false)
   const storedUser = getUser()
   const user = {
@@ -93,31 +96,48 @@ export default function DashboardLayout({
       )}
 
       {/* ══════════════════════════════════════════════
-          SIDEBAR
+          SIDEBAR (Figma Left Organic Wave Sidebar)
       ══════════════════════════════════════════════ */}
+      {/* Desktop Compact: Figma Left Organic Wave Sidebar */}
+      {collapsed && (
+        <div className="hidden lg:block border-r border-[var(--color-sidebar-border)] bg-[var(--color-bg-sidebar)] shrink-0">
+          <OrganicWaveSidebar
+            menuGroups={menuGroups}
+            onExpand={() => {
+              setCollapsed(false)
+              localStorage.setItem('sidebar_collapsed', 'false')
+            }}
+            user={user}
+            onLogout={handleLogout}
+          />
+        </div>
+      )}
+
+      {/* Expanded Sidebar (Desktop when opened) & Mobile Drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
-          border-[var(--color-sidebar-border)] bg-[var(--color-bg-sidebar)]
-          ${collapsed ? 'lg:w-18' : 'lg:w-64'}
-          w-64 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-200 lg:sticky lg:top-0 lg:h-screen
+          border-[var(--color-sidebar-border)] bg-[var(--color-bg-sidebar)] w-64
+          ${collapsed ? 'lg:hidden' : 'lg:translate-x-0'}
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Sidebar header: logo + collapse toggle */}
         <div className="flex h-18 items-center justify-between border-b border-[var(--color-sidebar-border)] px-4">
           <Link to="/admin/dashboard" className="flex min-w-0 items-center gap-2.5 no-underline">
             <img src={logo} alt="JACOS" className="h-8 w-8 shrink-0 object-contain" />
-            {!collapsed && (
-              <span className="truncate font-heading text-sm font-bold text-[var(--color-sidebar-text)]">
-                JACOS
-              </span>
-            )}
+            <span className="truncate font-heading text-sm font-bold text-[var(--color-sidebar-text)]">
+              JACOS
+            </span>
           </Link>
           <button
-            onClick={() => setCollapsed((c) => !c)}
+            onClick={() => {
+              setCollapsed(true)
+              localStorage.setItem('sidebar_collapsed', 'true')
+            }}
             className="hidden shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[var(--color-sidebar-hover-bg)] lg:block
               text-[var(--color-sidebar-text-muted)]"
             aria-label={t('nav.toggleSidebar')}
           >
-            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            <PanelLeftClose size={18} />
           </button>
         </div>
 
