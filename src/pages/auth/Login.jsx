@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import logo from '../../assets/guide/logo baru.svg'
-import bannerLoginDesktop from '../../assets/guide/bannerlogindesktop.svg'
-import bannerLoginMobile from '../../assets/guide/bannerloginmobile.svg'
+import desktopLogin from '../../assets/guide/desktopLogin.webp'
+import mobileLogin from '../../assets/guide/mobileLogin.webp'
 import { login } from '../../lib/api'
 import { ROLE_HOME, saveUser } from '../../lib/auth'
 import { requestPushPermissionOnce } from '../../lib/push'
@@ -47,7 +47,7 @@ export default function Login() {
         {/* ── Kiri: banner image full height ── */}
         <div className="relative m-4 flex-1 overflow-hidden rounded-[24px]">
           <img
-            src={bannerLoginDesktop}
+            src={desktopLogin}
             alt=""
             aria-hidden="true"
             className="h-full w-full object-cover"
@@ -162,7 +162,7 @@ export default function Login() {
 
         {/* Banner — portrait, penuh layar */}
         <img
-          src={bannerLoginMobile}
+          src={mobileLogin}
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover object-top"
