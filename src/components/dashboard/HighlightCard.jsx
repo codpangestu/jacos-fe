@@ -3,10 +3,13 @@ export default function HighlightCard({ title, description, ctaLabel, ctaTo, bad
     <div className="rounded-2xl bg-gradient-to-br from-primary-300 to-primary-900 p-5 text-white">
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-heading text-base font-bold">{title}</h3>
+        {/* Pill-nya tetap putih di kedua tema, jadi warnanya harus nilai tetap
+            (primary-900 = 14.3:1). Token primary-fg yang auto-swap akan jadi biru
+            terang di dark dan jatuh ke 2.06:1 di atas putih ini. */}
         {ctaTo && (
           <a
             href={ctaTo}
-            className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-primary-300"
+            className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-primary-900"
           >
             {ctaLabel}
           </a>

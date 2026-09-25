@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
+  ChevronDown,
   ChevronRight,
   LogOut,
   Menu,
@@ -44,6 +45,26 @@ export default function DashboardLayout({
       .map((w) => w[0])
       .slice(0, 2)
       .join(''),
+  }
+
+  // Track which groups are open. Default: grup yang punya active item terbuka,
+  // sisanya tertutup supaya sidebar tidak terlalu panjang.
+  const [openGroups, setOpenGroups] = useState(() => {
+    const initial = {}
+    menuGroups.forEach((group) => {
+      const hasActive = group.items.some((item) => item.to === location.pathname)
+      initial[group.label] = hasActive
+    })
+    // Jika tidak ada yang aktif (pertama kali masuk), buka grup pertama saja
+    const anyOpen = Object.values(initial).some(Boolean)
+    if (!anyOpen && menuGroups.length > 0) {
+      initial[menuGroups[0].label] = true
+    }
+    return initial
+  })
+
+  function toggleGroup(label) {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }))
   }
 
   useEffect(() => {
@@ -102,42 +123,69 @@ export default function DashboardLayout({
 
         {/* Nav menu */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {menuGroups.map((group) => (
-            <div key={group.label} className="mb-5">
-              {!collapsed && (
-                <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-sidebar-text-muted)]">
-                  {t(group.label)}
-                </p>
-              )}
-              <ul className="flex flex-col gap-0.5">
-                {group.items.map((item) => {
-                  const active = location.pathname === item.to
-                  const Icon = item.icon
-                  return (
-                    <li key={item.to}>
-                      <Link
-                        to={item.to}
-                        title={collapsed ? t(item.label) : undefined}
-                        className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-colors no-underline
-                          ${active
-                            ? 'bg-[var(--color-sidebar-active-bg)] text-[var(--color-sidebar-active-text)] shadow-sm'
-                            : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-hover-bg)]'
-                          }`}
-                      >
-                        <Icon size={18} className="shrink-0" />
-                        {!collapsed && (
-                          <span className="flex-1 truncate">{t(item.label)}</span>
-                        )}
-                        {!collapsed && active && (
-                          <ChevronRight size={14} className="shrink-0 opacity-70" />
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
+          {menuGroups.map((group) => {
+            const isOpen = openGroups[group.label] ?? false
+            const hasActive = group.items.some((item) => location.pathname === item.to)
+            return (
+              <div key={group.label} className="mb-1">
+                {/* Group header — clickable to expand/collapse (hidden when sidebar collapsed) */}
+                {!collapsed ? (
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className={`flex w-full items-center justify-between rounded-[8px] px-3 py-1.5 transition-colors
+                      ${hasActive
+                        ? 'text-[var(--color-sidebar-active-text)]'
+                        : 'text-[var(--color-sidebar-text-muted)] hover:text-[var(--color-sidebar-text)]'
+                      }`}
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">
+                      {t(group.label)}
+                    </span>
+                    <ChevronDown
+                      size={13}
+                      className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`}
+                    />
+                  </button>
+                ) : (
+                  /* Separator dot when collapsed */
+                  <div className="my-2 flex justify-center">
+                    <span className="h-px w-6 bg-[var(--color-sidebar-border)]" />
+                  </div>
+                )}
+
+                {/* Items — visible when open (or always when sidebar collapsed) */}
+                {(isOpen || collapsed) && (
+                  <ul className="mt-0.5 flex flex-col gap-0.5">
+                    {group.items.map((item) => {
+                      const active = location.pathname === item.to
+                      const Icon = item.icon
+                      return (
+                        <li key={item.to}>
+                          <Link
+                            to={item.to}
+                            title={collapsed ? t(item.label) : undefined}
+                            className={`flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors no-underline
+                              ${active
+                                ? 'bg-[var(--color-sidebar-active-bg)] text-[var(--color-sidebar-active-text)] shadow-sm'
+                                : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-hover-bg)]'
+                              }`}
+                          >
+                            <Icon size={17} className="shrink-0" />
+                            {!collapsed && (
+                              <span className="flex-1 truncate">{t(item.label)}</span>
+                            )}
+                            {!collapsed && active && (
+                              <ChevronRight size={13} className="shrink-0 opacity-60" />
+                            )}
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         {/* Sidebar alert card (pending approvals, etc.) */}

@@ -15,6 +15,19 @@
   --color-success-500: #22c55e;
   --color-danger-500: #ef4444;
 
+  /* Foreground teks/ikon status di atas tint 12% (badge, chip stat card, link).
+     Shade 500 hanya lolos sebagai elemen non-teks; token *-fg ini lolos >=4.5:1
+     di kedua tema, dan arah kontrasnya terbalik jadi di-override di blok .dark
+     (komponen cukup pakai `text-<tone>-fg`, tanpa varian dark: sendiri).
+     Dipakai HANYA untuk elemen yang backdrop-nya ikut ganti tema. Di atas latar
+     yang tetap (mis. pill putih HighlightCard) pakai nilai tetap seperti
+     primary-900, karena token ini akan jadi terang di dark dan gagal di sana. */
+  --color-success-fg: #166534;
+  --color-danger-fg: #991b1b;
+  --color-accent-fg: #92400e;
+  --color-neutral-fg: #475569;
+  --color-primary-fg: #1f6fa8;
+
   /* Semantic tokens — overridden inside .dark below */
   --color-bg-page: #f7f9fc;
   --color-bg-surface: #ffffff;
@@ -41,6 +54,12 @@
   --color-border: #1e3a5f;
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
+
+  --color-success-fg: #86efac;
+  --color-danger-fg: #fca5a5;
+  --color-accent-fg: #fcd34d;
+  --color-neutral-fg: #cbd5e1;
+  --color-primary-fg: #69b3e6;
 
   --color-bg-sidebar: #0c2b4c;
   --color-sidebar-text: rgba(255,255,255,0.85);

@@ -3,9 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import logo from '../../assets/guide/logo baru.svg'
-import heroStudents from '../../assets/picture/hero-students-group.png'
-import buildingIllustration from '../../assets/picture/building-illustration.png'
-import bannerLogin from '../../assets/guide/bannerlogin.webp'
+import bannerLoginDesktop from '../../assets/guide/bannerlogindesktop.svg'
+import bannerLoginMobile from '../../assets/guide/bannerloginmobile.svg'
 import { login } from '../../lib/api'
 import { ROLE_HOME, saveUser } from '../../lib/auth'
 import { requestPushPermissionOnce } from '../../lib/push'
@@ -48,7 +47,7 @@ export default function Login() {
         {/* ── Kiri: banner image full height ── */}
         <div className="relative m-4 flex-1 overflow-hidden rounded-[24px]">
           <img
-            src={bannerLogin}
+            src={bannerLoginDesktop}
             alt=""
             aria-hidden="true"
             className="h-full w-full object-cover"
@@ -159,26 +158,22 @@ export default function Login() {
       {/* ══════════════════════════════════════════════════
           MOBILE — full screen (lg:hidden)
       ══════════════════════════════════════════════════ */}
-      <div className="flex w-full max-w-[480px] flex-col overflow-hidden lg:hidden">
+      <div className="relative w-full min-h-screen lg:hidden overflow-hidden">
 
-        {/* Banner top */}
-        <div
-          className="relative shrink-0 overflow-hidden"
-          style={{ height: '42vh', background: 'linear-gradient(160deg, #2D94DA 0%, #1E5A8C 100%)' }}
-        >
-          <img
-            src={bannerLogin}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover object-center"
-            draggable="false"
-          />
-          {/* Gradient fade — card overlap lebih dalam dari gradient agar tidak ada garis */}
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
-        </div>
+        {/* Banner — portrait, penuh layar */}
+        <img
+          src={bannerLoginMobile}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          draggable="false"
+        />
 
-        {/* Form card */}
-        <div className="relative z-10 -mt-2 flex flex-1 flex-col rounded-t-[32px] bg-white px-6 pt-7 pb-10 shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
+        {/* Gradient overlay bawah supaya form terbaca */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
+
+        {/* Form card — overlay dari bawah */}
+        <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[32px] bg-white px-6 pt-7 pb-10 shadow-[0_-8px_40px_rgba(0,0,0,0.15)]">
           <h1 className="mb-6 text-center font-heading text-[26px] font-extrabold text-text-primary">
             {t('auth.signInButton', { defaultValue: 'Login' })}
           </h1>

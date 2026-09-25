@@ -32,6 +32,8 @@ export default function NotificationBell({ variant = 'default', className = '' }
         onClick={() => setOpen(true)}
         className={`${VARIANT_STYLES[variant] ?? VARIANT_STYLES.default} ${className}`}
         aria-label={t('nav.notifications')}
+        aria-haspopup="dialog"
+        aria-expanded={open}
       >
         <Bell size={20} />
         {unread > 0 && (

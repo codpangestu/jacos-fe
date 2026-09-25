@@ -7,7 +7,7 @@ export default function ListCard({ title, subtitle, items, viewAllTo }) {
           {subtitle && <p className="mt-0.5 text-xs text-text-secondary">{subtitle}</p>}
         </div>
         {viewAllTo && (
-          <a href={viewAllTo} className="text-xs font-semibold text-primary-300 hover:underline">
+          <a href={viewAllTo} className="text-xs font-semibold text-primary-fg hover:underline">
             Lihat semua
           </a>
         )}
@@ -16,7 +16,7 @@ export default function ListCard({ title, subtitle, items, viewAllTo }) {
       <ul className="mt-4 divide-y divide-border">
         {items.map((item) => (
           <li key={item.primary} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-xs font-semibold text-primary-300">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-xs font-semibold text-primary-fg">
               {item.initials}
             </span>
             <div className="min-w-0 flex-1">

@@ -1,8 +1,10 @@
+// Badge & link pakai token *-fg, bukan shade 500: teks 12px di atas tint 12%
+// maupun di atas surface terang butuh >=4.5:1, dan shade 500 tidak mencapai itu.
 const STATUS_TONE = {
-  success: 'bg-success-500/12 text-success-500',
-  danger: 'bg-danger-500/12 text-danger-500',
-  accent: 'bg-accent-500/12 text-accent-500',
-  neutral: 'bg-text-secondary/12 text-text-secondary',
+  success: 'bg-success-500/12 text-success-fg',
+  danger: 'bg-danger-500/12 text-danger-fg',
+  accent: 'bg-accent-500/12 text-accent-fg',
+  neutral: 'bg-text-secondary/12 text-neutral-fg',
 }
 
 export default function TableCard({ title, viewAllTo, columns, rows }) {
@@ -11,7 +13,7 @@ export default function TableCard({ title, viewAllTo, columns, rows }) {
       <div className="flex items-center justify-between">
         <h3 className="font-heading text-sm font-bold text-text-primary">{title}</h3>
         {viewAllTo && (
-          <a href={viewAllTo} className="text-xs font-semibold text-primary-300 hover:underline">
+          <a href={viewAllTo} className="text-xs font-semibold text-primary-fg hover:underline">
             Lihat semua
           </a>
         )}

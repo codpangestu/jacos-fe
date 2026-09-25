@@ -5,7 +5,7 @@ export default function ActivityTimelineCard({ title, viewAllTo, items }) {
       <div className="flex items-start justify-between">
         <h3 className="font-heading text-sm font-bold text-text-primary">{title}</h3>
         {viewAllTo && (
-          <a href={viewAllTo} className="text-xs font-semibold text-primary-300 hover:underline">
+          <a href={viewAllTo} className="text-xs font-semibold text-primary-fg hover:underline">
             Lihat semua
           </a>
         )}

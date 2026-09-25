@@ -20,55 +20,102 @@ const STATUS_COLOR = {
   alpa: 'var(--color-danger-500)',
 }
 
+// Blok skeleton pengganti angka stat selama pemuatan pertama, supaya tidak ada
+// kedipan "0" yang terbaca seperti nilai yang sah.
+const LOADING_BLOCK = (
+  <span className="block h-8 w-24 animate-pulse rounded-md bg-border" />
+)
+
 export default function GuruDashboard() {
   const { t } = useTranslation()
   const today = todayInputValue()
 
-  const { data: classroomsData } = useQuery({
+  const classroomsQuery = useQuery({
     queryKey: ['guru', 'classrooms'],
     queryFn: () => apiGet('/api/guru/classrooms'),
   })
-  const classrooms = classroomsData?.classrooms ?? []
+  const classrooms = classroomsQuery.data?.classrooms ?? []
   const [selectedClassroomId, setSelectedClassroomId] = useState(null)
   const classroomId = selectedClassroomId ?? classrooms[0]?.id ?? null
   const classroom = classrooms.find((c) => c.id === classroomId)
 
-  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
+  const attendanceQuery = useQuery({
     queryKey: ['guru', 'attendance', classroomId, today],
     queryFn: () => apiGet(`/api/classrooms/${classroomId}/attendance`, { date: today }),
     enabled: !!classroomId,
   })
 
-  const { data: notPickedUpData } = useQuery({
+  const notPickedUpQuery = useQuery({
     queryKey: ['pickup', 'not-picked-up', classroomId],
     queryFn: () => apiGet('/api/students/not-picked-up', { classroom_id: classroomId }),
     enabled: !!classroomId,
   })
 
-  const { data: announcementsData } = useQuery({
+  const announcementsQuery = useQuery({
     queryKey: ['announcements'],
     queryFn: () => apiGet('/api/announcements'),
   })
-  const announcements = announcementsData?.announcements ?? []
+  const announcements = announcementsQuery.data?.announcements ?? []
 
-  const { data: pendingStudentLeaveData } = useQuery({
+  const pendingStudentLeaveQuery = useQuery({
     queryKey: ['guru', 'student-leave-requests', 'pending'],
     queryFn: () => apiGet('/api/guru/student-leave-requests', { status: 'pending' }),
   })
-  const pendingStudentLeaveCount = pendingStudentLeaveData?.total ?? 0
+  const pendingStudentLeaveCount = pendingStudentLeaveQuery.data?.total ?? 0
 
+  const attendanceData = attendanceQuery.data
+  const notPickedUpData = notPickedUpQuery.data
   const students = attendanceData?.students ?? []
   const totalStudents = students.length
   const recorded = students.filter((s) => s.status).length
   const isHoliday = attendanceData?.is_holiday
-
-  const distribution = ['hadir', 'izin', 'sakit', 'alpa'].map((code) => ({
-    label: t(`status.${code}`),
-    value: students.filter((s) => s.status === code).length,
-    color: STATUS_COLOR[code],
-  }))
-
   const notPickedUp = notPickedUpData?.students ?? []
+
+  const queries = [
+    classroomsQuery,
+    attendanceQuery,
+    notPickedUpQuery,
+    announcementsQuery,
+    pendingStudentLeaveQuery,
+  ]
+  // isLoading react-query hanya true pada pemuatan pertama query yang benar-benar
+  // jalan (query yang di-disable tidak dihitung), jadi skeleton ini tidak berkedip
+  // saat refetch di belakang layar.
+  const isLoading = classroomsQuery.isLoading || attendanceQuery.isLoading || notPickedUpQuery.isLoading
+  const isError = queries.some((q) => q.isError)
+
+  function retryAll() {
+    queries.forEach((q) => q.refetch())
+  }
+
+  // Tanpa ini, request yang gagal tampil sebagai "0 siswa" / "0/0 sudah diinput"
+  // yang terbaca seperti data sah. Kalau datanya tidak ada, katakan tidak ada.
+  const statValue = (value) => (isLoading ? LOADING_BLOCK : (value ?? '-'))
+
+  const classroomValue = statValue(
+    classroom ? `${classroom.name} — ${t('dashboard.studentsCount', { count: totalStudents })}` : null
+  )
+  const attendanceValue = statValue(
+    attendanceData
+      ? isHoliday
+        ? t('dashboard.holiday')
+        : t('dashboard.recordedOf', { recorded, total: totalStudents })
+      : null
+  )
+  const notPickedUpValue = statValue(
+    notPickedUpData ? t('dashboard.studentsCount', { count: notPickedUp.length }) : null
+  )
+
+  // Persentase dibagi jumlah siswa rombel (bukan jumlah yang sudah diinput) supaya
+  // hari yang belum lengkap terlihat belum lengkap, bukan seperti bersih 100%.
+  const distribution = ['hadir', 'izin', 'sakit', 'alpa'].map((code) => {
+    const count = students.filter((s) => s.status === code).length
+    return {
+      label: t(`status.${code}`),
+      value: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0,
+      color: STATUS_COLOR[code],
+    }
+  })
 
   return (
     <DashboardLayout
@@ -93,28 +140,41 @@ export default function GuruDashboard() {
         </FormField>
       )}
 
+      {isError && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger-500/10 px-3.5 py-3">
+          <p className="text-sm text-danger-fg">{t('dashboard.loadError')}</p>
+          <button
+            type="button"
+            onClick={retryAll}
+            className="shrink-0 rounded-lg border border-danger-500/30 px-3 py-1.5 text-xs font-semibold text-danger-fg transition-colors hover:bg-danger-500/10"
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           icon={School}
           label={t('dashboard.myClassroom')}
-          value={classroom ? `${classroom.name} — ${t('dashboard.studentsCount', { count: totalStudents })}` : '-'}
+          value={classroomValue}
           tone="primary"
         />
         <StatCard
           icon={UserCheck}
           label={t('dashboard.attendanceToday')}
-          value={isHoliday ? t('dashboard.holiday') : t('dashboard.recordedOf', { recorded, total: totalStudents })}
+          value={attendanceValue}
           tone={recorded === totalStudents && totalStudents > 0 ? 'success' : 'accent'}
         />
         <StatCard
           icon={QrCode}
           label={t('dashboard.notPickedUp')}
-          value={t('dashboard.studentsCount', { count: notPickedUp.length })}
+          value={notPickedUpValue}
           tone="danger"
         />
       </div>
 
-      {!isHoliday && recorded === 0 && !attendanceLoading && classroom && (
+      {!isHoliday && recorded === 0 && attendanceQuery.isSuccess && classroom && (
         <HighlightCard
           title={t('dashboard.notRecordedTitle')}
           description={t('dashboard.notRecordedDescription', { classroom: classroom.name })}
@@ -133,7 +193,15 @@ export default function GuruDashboard() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <ProgressCard title={t('dashboard.attendanceDistribution')} items={distribution} />
+        <ProgressCard
+          title={t('dashboard.attendanceDistribution')}
+          caption={
+            attendanceData
+              ? t('dashboard.distributionCaption', { recorded, total: totalStudents })
+              : t('dashboard.distributionUnavailable')
+          }
+          items={attendanceData ? distribution : []}
+        />
         <TableCard
           title={t('dashboard.notPickedUpInMyClass')}
           viewAllTo="/guru/pickup/verify"
@@ -141,10 +209,14 @@ export default function GuruDashboard() {
             { key: 'name', label: t('dashboard.name') },
             { key: 'status', label: t('common.status') },
           ]}
-          rows={notPickedUp.map((s) => ({
-            ...s,
-            status: { label: t('dashboard.notPickedUp'), tone: 'danger' },
-          }))}
+          rows={
+            notPickedUpData
+              ? notPickedUp.map((s) => ({
+                  ...s,
+                  status: { label: t('dashboard.notPickedUp'), tone: 'danger' },
+                }))
+              : []
+          }
         />
       </div>
 
