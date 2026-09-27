@@ -26,3 +26,13 @@ export const ROLE_LABEL = {
   orang_tua: 'Orang Tua/Wali',
   staff: 'Staff',
 }
+
+// Subtitle di header sidebar — Figma "Left Organic Curve Sidebar" menulis
+// "Admin Portal". Dipetakan per role supaya role lain tidak ikut tertulis
+// "Admin". Seperti ROLE_LABEL di atas, teksnya belum lewat i18n.
+export const ROLE_PORTAL_LABEL = {
+  admin: 'Admin Portal',
+  guru: 'Guru Portal',
+  orang_tua: 'Orang Tua Portal',
+  staff: 'Staff Portal',
+}

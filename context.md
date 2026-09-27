@@ -100,11 +100,13 @@ Semua di `@theme` block:
 
 **Catatan pengukuran:** kontras harus dihitung terhadap backdrop tempat elemen benar-benar berada, bukan terhadap putih. Kesalahan ini pernah terjadi (ikon chip primary diukur ke putih → dikira 3.30:1, padahal di atas tint chip-nya 2.90:1).
 
-**Sidebar tokens** (dipakai `DashboardLayout`): `bg-sidebar`, `sidebar-text`, `sidebar-text-muted`, `sidebar-border`, `sidebar-active-bg`, `sidebar-active-text`, `sidebar-hover-bg` — di-override di `.dark {}` supaya sidebar flip navy di dark mode (light mode sidebar putih, dark mode sidebar navy).
+**Sidebar tokens** (dipakai `DashboardLayout`): `bg-sidebar`, `sidebar-text`, `sidebar-text-muted`, `sidebar-border`, `sidebar-active-bg`, `sidebar-active-text`, `sidebar-hover-bg` — di-override di `.dark {}` supaya sidebar flip navy di dark mode (light mode sidebar putih, dark mode sidebar navy). Sejak redesain expanded 2026-09-28, nav expanded **tidak lagi** memakai token ini — ia pakai hex literal Figma (lihat bagian Sidebar Expanded). Token tinggal dipakai untuk latar kolom sidebar dan oleh `OrganicWaveSidebar`.
 
 > **Konflik yang belum diputuskan (ditemukan 2026-09-18):** root `context.md` dan `PRODUCT.md` menyatakan sidebar **"selalu navy di kedua tema"**, sedangkan implementasi (dan dokumen ini) menyebut light mode = putih **secara sengaja**. Komentar di `index.css` juga masih menulis "always navy". Salah satu dari keduanya harus diperbaiki — belum diputuskan user.
+>
+> **Catatan 2026-09-28:** nav expanded sekarang **selalu biru** di kedua tema (panel Figma), jadi kontradiksi ini tinggal relevan untuk latar kolom sidebar dan `OrganicWaveSidebar`.
 
-**Warna Figma literal (belum dimigrasi ke token).** Redesain Dashboard Admin (2026-09-25) dan Dashboard Ortu v1.0 memakai hex persis Figma — `#5B61F6` (indigo), `#2082F5` (biru), `#0F1220` (pill gelap), plus gray Tailwind — alih-alih token di atas. Ini keputusan sadar ("warna persis Figma") dan komponennya dikomentari sebagai greppable sampai migrasi token global dijalankan. Konsekuensi kontras yang sudah tercatat di komentar kode: putih di atas `#2082F5` **3,77:1** (AgendaHighlightCard, di bawah AA 4.5:1 untuk teks kecil), cincin gauge `#5B61F6` di dark **2,93:1**, fill bar ClassStatusCard juga <3:1 di dark.
+**Warna Figma literal (belum dimigrasi ke token).** Redesain Dashboard Admin (2026-09-25) dan Dashboard Ortu v1.0 memakai hex persis Figma — `#5B61F6` (indigo), `#2082F5` (biru), `#0F1220` (pill gelap), plus gray Tailwind — alih-alih token di atas. Ini keputusan sadar ("warna persis Figma") dan komponennya dikomentari sebagai greppable sampai migrasi token global dijalankan. Konsekuensi kontras yang sudah tercatat di komentar kode: putih di atas `#2082F5` **3,77:1** (AgendaHighlightCard, di bawah AA 4.5:1 untuk teks kecil), cincin gauge `#5B61F6` di dark **2,93:1**, fill bar ClassStatusCard juga <3:1 di dark. Sidebar expanded (2026-09-28) menambah `#2082F5 → #1466CA` (panel), `#0c2b4c` / `#64748b` (header), `#f1f5f9` / `#475569` (tombol collapse) — semuanya literal.
 
 Dark mode berbasis **class** (`@custom-variant dark`), toggle via `useDarkMode.js` (localStorage persist).
 
@@ -115,9 +117,9 @@ Font: **Plus Jakarta Sans** (`font-heading`) + **Inter** (`font-body`) via Googl
 ## Layout System — 2 Shell (PENTING)
 
 ### `DashboardLayout` — Admin & Guru
-- Sidebar kiri persisten; **default EXPANDED 240px**. State collapse disimpan di `localStorage.sidebar_collapsed` (bug lama: default-nya rail karena `!== 'false'`, jadi sidebar 240px praktis tidak pernah terlihat).
+- Sidebar kiri persisten; **default EXPANDED 256px** (`w-64`). State collapse disimpan di `localStorage.sidebar_collapsed` (bug lama: default-nya rail karena `!== 'false'`, jadi sidebar 256px praktis tidak pernah terlihat).
 - Sidebar **collapsed** → merender **`OrganicWaveSidebar`** (80px): rail ikon dengan bentuk "organic wave" (`#2082F5`, 2 SVG cap + badan ribbon), **satu ikon per grup menu** (item aktif grup itu, atau item pertamanya), tooltip saat hover, item aktif = squircle putih dengan glyph "app grid", settings/logout/avatar di bawah wave. (Versi lama meratakan semua item lalu `slice(0, 8)` sehingga membuang menu penting.)
-- **Light mode sidebar: putih** dengan teks gelap, active item biru solid + chevron kanan; **dark mode: navy** `#0C2B4C` dengan teks putih
+- **Expanded (redesain 2026-09-28)**: panel biru gradient `#2082F5 → #1466CA` yang **sama di light maupun dark** (tidak ikut tema), full-bleed dengan lengkung organik di kanan-atas. Angka Figma lengkap + daftar penyimpangan yang disengaja ada di bagian **Sidebar Expanded — Redesign Figma** di bawah.
 - **Topbar (redesign 2026-09-25)**: judul halaman + subtitle **sudah tidak** dirender di sini — dipindah ke `document.title` (`pageSubtitle` sekarang hanya dipakai untuk itu). Isinya sekarang: tab lintas-seksi `NAV_TOP_TABS` per role (Admin/Guru), search box (ikon mic dihapus), pill toggle **Light/Dark** berlabel, link Pengaturan, `LanguageSwitcher variant="figma"`, dan CTA "Pengumuman +" khusus admin. Di bawah `lg`: hamburger.
 - Right rail (opsional, 320px) & sidebar alert card (opsional) masih didukung via props — tapi `rightRail` sekarang **tidak dikirim halaman mana pun** (dashboard Admin lama yang memakainya sudah di-redesain).
 - Dipakai: semua halaman `/admin/*` dan `/guru/*`, dan `ResponsiveShell` untuk role selain Ortu/Staff
@@ -135,6 +137,36 @@ Font: **Plus Jakarta Sans** (`font-heading`) + **Inter** (`font-body`) via Googl
 ### `ResponsiveShell`
 - Wrapper role-aware: cek `user.role`, kalau `orang_tua` atau `staff` render `MobileAppShell`, selain itu `DashboardLayout`
 - Dipakai oleh semua halaman Ortu/Staff + halaman shared (PickupVerify, SelfAttendance, LeaveRequests, Profile, dll.)
+
+---
+
+## Sidebar Expanded (`DashboardLayout`) — Redesign Figma "Left Organic Curve Sidebar" (2026-09-28)
+
+File: `src/layouts/DashboardLayout.jsx`, blok `<aside>` expanded saja. Frame Figma **node 83:768** (file key `FTR1cd10409XotFDmBFy0m`). State collapse tetap `OrganicWaveSidebar` dan **tidak disentuh** — keduanya branch eksklusif (`collapsed ? 'lg:hidden' : …`), jadi terpisah bersih.
+
+**Cara ambil angkanya — catat, ini yang bikin bolak-balik:** `/v1/files/:key/nodes?ids=…` **kena rate limit keras** (`Retry-After` ≈ 205.000 detik), sedangkan `/v1/files/:key` biasa jalan normal; pakai yang terakhir. Bentuk kurva, radius, dan opacity **tidak ada** di response JSON — itu cuma muncul lewat `GET /v1/images/:key?ids=…&format=svg`, yang mengembalikan URL S3 berisi path SVG asli. JSON-nya tetap perlu untuk teks, font, posisi absolut, dan ukuran kotak.
+
+**Struktur (kolom 256px, full-bleed):**
+
+1. **Header `h-[82px]`** (`83:770`) — logo 38×40 di x=20; wordmark "JACOS" **Plus Jakarta Sans 16/700 `#0c2b4c`** (lh 20); subtitle Inter 10.5/400 `#64748b` (lh 13); tombol collapse **32×33** `#F1F5F9` radius 10 berisi `ChevronLeft` (glyph 6×12, stroke `#475569`) di x=202. Blok ini duduk di **atas** panel biru, jadi latarnya tetap ikut tema.
+2. **Panel biru** (`83:777`) — FULL-BLEED, x=0..256 mulai y=82; **bukan** kartu ber-margin. Path aslinya `M0 0 H176 C220.183 0 256 38.7048 256 86.45 V925.015 C256 939.339 245.255 950.95 232 950.95 H0 Z`: sudut kiri siku, lengkung organik kanan-atas dari x=176 ke x=256 setinggi 86, radius kanan-bawah 24×26. Diimplementasikan sebagai `borderTopRightRadius: '80px 86px'` — titik ujungnya identik dengan kurva kubik itu, cuma kontrolnya beda tipis (Figma 38.70 vs 47.75 untuk elips murni). Radius kanan-bawah **sengaja tidak dipakai**: di frame aslinya panel overflow (82+951 > tinggi frame 988) sehingga lengkung itu tidak pernah terlihat, dan di sini panel full-height. Gradient `linear-gradient(162.5deg, #2082F5, #1466CA)`; sudut 162.5° dihitung dari vektor `<linearGradient>` Figma (0,0)→(295.082, 938.664) `userSpaceOnUse`.
+3. **Pill putih** (`83:779`) — 168×40 radius 20 (stadium), di **x=22 rata kiri** (bukan di tengah), teks 23px dari tepi dalam, **PJS 13/700 `#2082f5`**. Isinya **label grup nav yang sedang aktif** (`sidebarSection`), bukan judul halaman — kalau judul halaman, teksnya jadi sama persis dengan item nav aktif di bawahnya. Fallback ke `pageTitle` untuk halaman di luar menu.
+4. **Baris nav** — tinggi **41px**, radius **12.35**, gap **6.5** → pitch **47.5px**, sama dengan Figma. Padding ditaruh di `<nav>` (`pl-[22px] pr-[18px]`), bukan di panel; baris pertama mendarat di **y=179** persis Figma (panel 82 + `pt-8` 32 + pill 40 + `mt-[25px]` 25). Item aktif = `bg-white/[0.18]` — angka 0.18 diambil dari `fill-opacity="0.18"` di SVG, bukan tebakan — + teks 700; non-aktif 400 + `hover:bg-white/[0.08]`. Teks **Inter 13.5px mulai x=64** = 22 margin + 13 padding + ikon 20 + gap 9.
+5. **Footer** (`83:973`) — divider 216px putih **25%** (dari `stroke-opacity="0.25"`), ikon Pengaturan 18×18 di x=25, teks di x=54 (Inter 14/400), pitch antar baris **44px**. `px-5` di wrapper bikin divider mendarat tepat di x=20..236 seperti Figma.
+
+**Accordion + garis tree dipertahankan** meski Figma-nya flat — ini permintaan eksplisit. Grup collapsible dan sub-item bertree-line hanya di-restyle ke bahasa visual panel (garis `white/25`). Konsekuensinya: dengan pitch 47.5px, menu Admin yang tergrup panjang **akan scroll** di dalam `<nav>`.
+
+**Subtitle "Admin Portal"** dari Figma dipetakan per role lewat `ROLE_PORTAL_LABEL` di `lib/auth.js` (`Admin Portal`/`Guru Portal`/`Staff Portal`/`Orang Tua Portal`) — belum lewat i18n, sama seperti `ROLE_LABEL` yang sudah ada di sana.
+
+**Sengaja beda dari Figma (semua ada komentarnya di kode):**
+
+- **Ikon** pakai lucide 20px `strokeWidth={1.8}`. Ikon Figma path custom (mis. "Data Siswa" 22×18) yang rasionya tidak sama dengan lucide; identik hanya kalau path-nya dipindah jadi komponen SVG sendiri.
+- **Logo**: Figma menggambar placeholder (shield *outline* `#2082F5` di dalam kotak biru 10%), di sini dipakai `logo baru.svg` asli di kotak 38×40 yang sama.
+- **Kartu `sidebarAlert`** tidak ada di Figma; tetap kartu putih solid (`ml-[22px] mr-[18px]`) karena gradient lamanya tabrakan warna dengan panel biru.
+- **`border-r` 1px** dipertahankan (Figma tidak punya) supaya area header putih tetap terpisah dari `bg-page` di light mode.
+- **Isi pill**: Figma menulis "Homepage" — nama halaman mockup-nya, bukan label UI nyata.
+
+**Dark mode:** file Figma cuma punya 1 frame (light), jadi tidak ada acuan. Panel birunya dibiarkan **konstan di kedua tema**; yang ikut tema hanya header/tombol collapse/border (`#F1F5F9` & `#475569` adalah nilai light-mode → di dark jadi `bg-white/10` dan `text-sidebar-text`).
 
 ---
 
@@ -235,7 +267,7 @@ Dashboard tidak pakai pola N+1 `useQueries` per rombel. Absensi diambil dari **1
 - **Halaman scoped-per-anak (Ortu)** → pasang `ActiveChildBar` + pakai `useOrtuChildren()`.
 - **Warna baru di halaman** → pakai token `primary-*`, `accent-500`, `success-500`, `danger-500`. Boleh pakai hex literal untuk warna-warna dekoratif satu-off (banner, ilustrasi) tapi jangan buat token baru di `index.css` tanpa diskusi.
 - **Teks atau ikon di atas tint berwarna** → pakai token `*-fg` (`text-danger-fg`, `text-primary-fg`, dst), **bukan** shade 500. Token `*-fg` sudah lengkap untuk 5 tone dan otomatis berganti di dark mode, jadi jangan menambah varian `dark:` per-komponen. Detail & rasio terukurnya ada di bagian **Design Tokens** di atas.
-- **Warna persis Figma** (redesain Admin 2026-09-25 & Ortu v1.0) → boleh pakai hex literal langsung di JSX; **jangan** diam-diam "dibetulkan" jadi token tema tanpa diskusi, karena bentuk plek Figma adalah permintaan eksplisit. Kalau menambah, tulis komentar singkat berisi hex-nya supaya gampang di-grep saat migrasi token.
+- **Warna persis Figma** (redesain Admin 2026-09-25, Ortu v1.0, Sidebar Expanded 2026-09-28) → boleh pakai hex literal langsung di JSX; **jangan** diam-diam "dibetulkan" jadi token tema tanpa diskusi, karena bentuk plek Figma adalah permintaan eksplisit. Kalau menambah, tulis komentar singkat berisi hex-nya supaya gampang di-grep saat migrasi token.
 
 ---
 
@@ -249,7 +281,8 @@ Dashboard tidak pakai pola N+1 `useQueries` per rombel. Absensi diambil dari **1
 - **`Drawer` (NotificationDrawer) pasca-perbaikan a11y (2026-09-18)**: `inert` saat tertutup, fokus masuk/keluar, trap `Tab`, `Escape`. Sifat `inert` baru dibuktikan lewat output render (`renderToStaticMarkup`), **belum** di a11y tree browser sungguhan.
 - **Tone `primary-fg` yang lebih gelap** (light) perlu dilihat mata: link "Lihat semua" dan label CTA sekarang `#1F6FA8`, bukan `#2D94DA`.
 - Midtrans masih sandbox stub — tombol Bayar di `OrtuInvoiceDetail.jsx` menampilkan token sandbox.
+- **Redesain Sidebar Expanded Figma (2026-09-28) belum pernah diklik-test di browser.** Perlu dicek mata: lengkung organik kanan-atas di ukuran viewport berbeda, scroll nav saat semua grup terbuka (pitch 47.5px), dark mode (panel biru konstan vs header yang ikut tema), dan posisi pill saat label seksi panjang. Utang kontras yang **sengaja dibiarkan** supaya plek Figma: putih di atas `#2082F5` **4,31:1** dan di atas item aktif putih 18% **≈3,4:1** — keduanya di bawah AA 4.5:1 untuk teks 13.5px.
 - **Redesain Dashboard Admin Figma (2026-09-25/26) belum pernah diklik-test di browser.** Perlu dicek mata: responsive 3 kolom → 1 kolom, tab `NAV_TOP_TABS` di layar sempit, `OrganicWaveSidebar` saat collapse/hover, dark mode (banyak warna hardcode), dan aksi "Ingatkan"/"Ingatkan semua".
 - **Direkonstruksi dari kode, bukan catatan sesi**: deskripsi supaya shell mobile, Dashboard Ortu v1.0, dan redesain Admin di dokumen ini diturunkan dari membaca kode + `git log` (bukan dari transkrip sesi yang menyentuhnya). Kalau ada detail perilaku yang tidak sesuai, perlakukan kode sebagai sumber kebenaran.
-- **Kontradiksi sidebar belum diputuskan**: dokumen ini (dan implementasi `--color-bg-sidebar: #ffffff` di light + komentar `index.css`) menyebut light = putih, tapi `PRODUCT.md` & root `context.md` masih menulis "sidebar selalu navy di kedua tema". Salah satu harus diperbaiki.
+- **Kontradiksi sidebar belum diputuskan**: dokumen ini (dan implementasi `--color-bg-sidebar: #ffffff` di light + komentar `index.css`) menyebut light = putih, tapi `PRODUCT.md` & root `context.md` masih menulis "sidebar selalu navy di kedua tema". Salah satu harus diperbaiki. Sejak 2026-09-28 nav expanded selalu biru, jadi sisa persoalannya cuma latar kolom + `OrganicWaveSidebar`.
 - **Utang kecil**: `ActionCards.jsx` + 6 komponen dashboard orphan belum dihapus; prop `rightRail` sudah tidak dipakai; SVG ilustrasi >1 MB (`boy`/`girl`/`logo baru`) ikut precache PWA; lint masih 5 warning (0 error).
