@@ -1,23 +1,23 @@
 import { Link } from 'react-router-dom'
 
-// Warna ring mengikuti dua aksen frame Figma: indigo (presensi) & biru (SPP).
-// Dipasang sebagai className (bukan atribut `stroke`) supaya bisa punya varian
-// dark: — indigo #5b61f6 di atas surface dark hanya 2.93:1, gagal ambang 3:1
-// untuk elemen grafis, jadi di dark naik ke #9a97f5 (5.30:1).
-const RING_CLASS = {
-  indigo: 'stroke-[#5b61f6] dark:stroke-[#9a97f5]',
-  blue: 'stroke-[#2082f5]',
-}
-
 /**
- * Kartu gauge ring (frame Figma "Gauges and Meeting Column", kartu 203x115).
- * `value` adalah persentase 0-100. `caption` untuk denominator (mis. "306 dari
- * 312 siswa hadir") supaya angkanya tidak menggantung tanpa konteks.
+ * Kartu gauge — frame Figma "Gauges and Meeting Column" (kartu 203x115, r20,
+ * padding 14, VERTICAL gap 6).
+ *
+ * Rekonstruksi: dump node Figma menunjukkan "Gauge 98%" hanya berisi teks
+ * "98%" (Inter 700 25/30) — cincinnya digambar sebagai vektor yang tidak
+ * terlihat di dump. Susunan di sini: overline 8.5/11 → baris header 40px
+ * (cincin 40x40 + angka 25/30) → 2 baris subteks 9.5/12. Urutan grup aslinya
+ * (mana teks di "Text Group" vs "Subtext Group") tidak 100% pasti dari dump.
+ *
+ * Warna memakai #5B61F6 apa adanya sesuai permintaan; konsekuensinya cincin ini
+ * di dark mode hanya 2.93:1 terhadap surface (di bawah ambang 3:1 elemen grafis).
  */
 export default function GaugeCard({
-  label,
+  overline,
   value,
-  caption,
+  label,
+  subLines = [],
   tone = 'indigo',
   ctaLabel,
   ctaTo,
@@ -28,15 +28,13 @@ export default function GaugeCard({
   const circumference = 2 * Math.PI * radius
 
   return (
-    <div className="flex flex-col rounded-[20px] border border-border bg-bg-surface p-4">
-      <div className="flex items-center gap-3">
-        <svg
-          width="40"
-          height="40"
-          viewBox="0 0 40 40"
-          className="shrink-0 -rotate-90"
-          aria-hidden="true"
-        >
+    <div className="flex flex-col gap-[6px] rounded-[20px] border border-border bg-bg-surface p-[14px]">
+      <p className="font-heading text-[8.5px] font-bold uppercase leading-[11px] tracking-wide text-[#94a1b2]">
+        {overline}
+      </p>
+
+      <div className="flex h-10 items-center gap-2">
+        <svg width="40" height="40" viewBox="0 0 40 40" className="shrink-0 -rotate-90" aria-hidden="true">
           <circle cx="20" cy="20" r={radius} fill="none" strokeWidth="5" className="stroke-border" />
           {!isLoading && (
             <circle
@@ -46,27 +44,35 @@ export default function GaugeCard({
               fill="none"
               strokeWidth="5"
               strokeLinecap="round"
-              className={RING_CLASS[tone] ?? RING_CLASS.indigo}
+              stroke={tone === 'blue' ? '#2082f5' : '#5b61f6'}
               strokeDasharray={circumference}
               strokeDashoffset={circumference - (circumference * pct) / 100}
             />
           )}
         </svg>
-
-        <div className="min-w-0">
-          <p className="font-heading text-lg font-bold leading-tight text-text-primary">
-            {isLoading ? '-' : `${pct}%`}
-          </p>
-          <p className="truncate text-[11px] font-semibold text-text-primary">{label}</p>
-        </div>
+        <span className="font-body text-[25px] font-bold leading-[30px] text-text-primary">
+          {isLoading ? '-' : `${pct}%`}
+        </span>
       </div>
 
-      {caption && <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">{caption}</p>}
+      <div className="flex flex-col gap-[1px]">
+        <p className="truncate font-heading text-[10px] font-bold leading-[13px] text-text-primary">
+          {label}
+        </p>
+        {subLines.filter(Boolean).map((line) => (
+          <p
+            key={line}
+            className="truncate font-heading text-[9.5px] leading-[12px] text-[#94a1b2]"
+          >
+            {line}
+          </p>
+        ))}
+      </div>
 
       {ctaTo && ctaLabel && (
         <Link
           to={ctaTo}
-          className="mt-3 text-[11px] font-semibold text-primary-fg no-underline hover:underline"
+          className="mt-1 flex h-[26px] w-fit items-center rounded-lg bg-[#5b61f6] px-[10px] font-heading text-[10px] font-bold leading-[13px] text-white no-underline transition-opacity hover:opacity-90"
         >
           {ctaLabel}
         </Link>

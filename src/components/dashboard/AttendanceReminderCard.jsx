@@ -3,14 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { BellRing, ClipboardCheck, Send } from 'lucide-react'
 
 /**
- * "Pengingat Input Absensi" (frame Figma "Pengingat Absensi Column").
+ * "Pengingat Absensi Column" — frame Figma 400x260, r24, padding 16/18.
  *
- * Data dari GET /api/admin/attendance/submission-status. Aksi per-rombel
- * memakai POST /api/admin/classrooms/{id}/attendance/remind.
+ * Ukuran dari Figma: header 24px, badge r6, baris kelas 34px r8, tombol
+ * "Ingatkan" 23px r6, tombol broadcast 32px r10, jarak list 5px.
  *
- * Catatan: tombol "Kirim Pengingat ke Semua" TIDAK punya endpoint bulk di
- * backend — ia memanggil endpoint per-rombel yang sama untuk tiap rombel
- * (lihat handler di AdminDashboard). Jadi tidak ada angka palsu di sini.
+ * Warna amber ditulis sebagai token `accent-500/15` + `accent-fg` alih-alih
+ * hex #FEF3C7/#D97706/#92400E: nilainya nyaris identik (tint-nya terukur sama
+ * dalam 2 satuan dan `accent-fg` light memang #92400E persis), tapi token ini
+ * punya varian dark sehingga kartunya tidak jadi blok terang di mode gelap.
+ * Baris kelas pakai `bg-bg-page` (= #F7F9FC, praktis sama dengan #F8FAFC Figma)
+ * untuk alasan yang sama.
  */
 export default function AttendanceReminderCard({
   classes = [],
@@ -33,15 +36,16 @@ export default function AttendanceReminderCard({
   }
 
   return (
-    <div className="flex flex-col rounded-3xl border border-border bg-bg-surface p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <ClipboardCheck size={17} className="shrink-0 text-text-primary" />
-          <h3 className="truncate font-heading text-[15px] font-bold text-text-primary">
+    <div className="flex flex-col gap-[8px] rounded-3xl border border-border bg-bg-surface p-4 px-[18px]">
+      {/* Header */}
+      <div className="flex h-6 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-[6px]">
+          <ClipboardCheck size={16} className="shrink-0 text-[#1e1b4b] dark:text-text-primary" />
+          <h3 className="truncate font-heading text-[14px] font-bold leading-[18px] text-[#1e1b4b] dark:text-text-primary">
             {t('dashboard.reminderTitle')}
           </h3>
           {count > 0 && (
-            <span className="shrink-0 rounded-md bg-accent-500/15 px-1.5 py-0.5 text-[11px] font-bold text-accent-fg">
+            <span className="shrink-0 rounded-md bg-accent-500/15 px-[6px] py-[2px] font-heading text-[8.5px] font-bold leading-[11px] text-accent-fg">
               {t('dashboard.reminderBadge', { count })}
             </span>
           )}
@@ -49,7 +53,7 @@ export default function AttendanceReminderCard({
         {viewAllTo && (
           <Link
             to={viewAllTo}
-            className="shrink-0 text-xs font-semibold text-accent-fg no-underline hover:underline"
+            className="shrink-0 font-heading text-[11px] font-semibold leading-[14px] text-accent-fg no-underline hover:underline"
           >
             {t('dashboard.reminderStatusLink')}
           </Link>
@@ -57,36 +61,38 @@ export default function AttendanceReminderCard({
       </div>
 
       {count === 0 ? (
-        <p className="mt-4 text-[13px] text-text-secondary">{t('dashboard.reminderAllComplete')}</p>
+        <p className="font-heading text-[10.5px] leading-[13px] text-text-secondary">
+          {t('dashboard.reminderAllComplete')}
+        </p>
       ) : (
         <>
-          <p className="mt-2 text-xs text-text-secondary">
+          <p className="font-heading text-[10.5px] leading-[13px] text-text-secondary">
             {t('dashboard.reminderSubtitle', { count })}
           </p>
 
-          <ul className="mt-3 flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-[5px]">
             {classes.slice(0, 3).map((c) => {
               const sent = reminded[c.classroom_id]
               const disabled = !c.homeroom_teacher_id || sent || isPending
               return (
                 <li
                   key={c.classroom_id}
-                  className="flex items-center gap-2 rounded-lg bg-bg-page px-2.5 py-1.5"
+                  className="flex h-[34px] items-center justify-between gap-2 rounded-lg bg-bg-page px-[10px] py-[6px]"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-text-primary">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="shrink-0 rounded bg-[#5b61f6]/12 px-1.5 py-0.5 font-heading text-[9px] font-bold text-[#1e1b4b] dark:text-text-primary">
                       {c.classroom_name}
-                    </p>
-                    <p className="truncate text-[11px] text-text-secondary">
+                    </span>
+                    <span className="truncate font-heading text-[9.5px] leading-[12px] text-text-secondary">
                       {c.homeroom_teacher ?? t('dashboard.noHomeroomTeacher')} · {statusLabel(c)}
-                    </p>
+                    </span>
                   </div>
                   <button
                     type="button"
                     disabled={disabled}
                     title={!c.homeroom_teacher_id ? t('dashboard.noHomeroomTeacher') : undefined}
                     onClick={() => onRemind(c.classroom_id)}
-                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md bg-accent-500/15 px-2 py-1 text-[11px] font-semibold text-accent-fg transition-colors hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md bg-accent-500/15 px-2 py-1 font-heading text-[9px] font-bold leading-[11px] text-accent-fg transition-colors hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <BellRing size={11} />
                     {sent ? t('dashboard.reminderSent') : t('dashboard.reminderAction')}
@@ -100,7 +106,7 @@ export default function AttendanceReminderCard({
             type="button"
             disabled={isBulkPending}
             onClick={onRemindAll}
-            className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-accent-500/15 px-3 py-2 text-[11px] font-bold text-accent-fg transition-colors hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-accent-500/15 px-3 font-heading text-[10.5px] font-bold leading-[13px] text-accent-fg transition-colors hover:bg-accent-500/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Send size={13} />
             {t('dashboard.reminderBroadcast', { count })}

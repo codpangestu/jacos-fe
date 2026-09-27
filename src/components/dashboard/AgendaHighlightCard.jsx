@@ -1,49 +1,36 @@
 import { Link } from 'react-router-dom'
-import { Megaphone } from 'lucide-react'
-
-// Figma memakai #2082f5 untuk kartu solid ini, tapi putih di atas #2082f5 hanya
-// 3.77:1 — gagal ambang AA 4.5:1 untuk teks 12-14px. Dipakai biru yang digelapkan
-// ke #1a68c9 (5.43:1) supaya hue-nya tetap sama tapi teksnya lolos AA.
-const CARD_BLUE = '#1a68c9'
+import { Handshake } from 'lucide-react'
 
 /**
- * Kartu highlight biru (frame Figma "Alert Agenda / Konsultasi Wali Santri").
+ * Kartu highlight biru — frame Figma "Alert Agenda / Konsultasi Wali Santri"
+ * (192x302, r24, bg #2082F5, padding 20).
  *
- * Adaptasi: modul aslinya ("Evaluasi & Konsultasi Wali Santri" dengan jumlah
- * undangan/kehadiran) tidak punya sumber data di backend. Kartu ini dipakai
- * sebagai gantinya untuk pengumuman terbaru — satu-satunya data yang memang
- * tersedia dan memang perlu ditonjolkan di dashboard Admin — sehingga elemen
- * biru khas desain tetap ada tanpa mengarang angka.
+ * Struktur persis Figma: pill putih 56x28 r999 berisi ikon, judul Inter 700
+ * 14/17 putih (2 baris), deskripsi Inter 400 9.5/11 putih, CTA pill r999
+ * #0F1220. Emoji 🤝 diganti ikon lucide sesuai konvensi ikon project.
+ *
+ * Isinya tetap kosong: modul "Evaluasi & Konsultasi Wali Santri" (jumlah
+ * undangan, kehadiran) tidak punya endpoint backend, jadi kartunya dirender
+ * dengan judul + keterangan kosong dan CTA-nya disembunyikan — tidak ada
+ * halaman tujuan yang bisa dibuka.
+ *
+ * Warna biru #2082F5 dipakai apa adanya sesuai permintaan; putih di atasnya
+ * terukur 3.77:1 (di bawah ambang AA 4.5:1 untuk teks 9.5-14px).
  */
-export default function AgendaHighlightCard({ title, description, meta, ctaLabel, ctaTo, empty }) {
-  if (empty) {
-    return (
-      <div className="flex flex-1 flex-col justify-center rounded-3xl border border-dashed border-border bg-bg-surface p-5 text-center">
-        <Megaphone size={20} className="mx-auto text-text-secondary" />
-        <p className="mt-2 font-heading text-sm font-bold text-text-primary">{title}</p>
-        <p className="mt-1 text-[11px] text-text-secondary">{description}</p>
-      </div>
-    )
-  }
-
+export default function AgendaHighlightCard({ title, emptyMessage, ctaLabel, ctaTo }) {
   return (
-    <div
-      className="flex flex-1 flex-col rounded-3xl p-5 text-white"
-      style={{ backgroundColor: CARD_BLUE }}
-    >
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white" style={{ color: CARD_BLUE }}>
-        <Megaphone size={19} />
+    <div className="flex h-full flex-col rounded-3xl bg-[#2082f5] p-5">
+      <span className="flex h-7 w-14 items-center justify-center rounded-full bg-white text-[#2082f5]">
+        <Handshake size={18} />
       </span>
 
-      <h3 className="mt-4 font-heading text-[15px] font-bold leading-snug">{title}</h3>
-      <p className="mt-2 line-clamp-3 text-[11px] leading-relaxed text-white/90">{description}</p>
+      <h3 className="mt-5 font-body text-[14px] font-bold leading-[17px] text-white">{title}</h3>
+      <p className="mt-2 font-body text-[9.5px] leading-[11px] text-white">{emptyMessage}</p>
 
-      {meta && <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-white/75">{meta}</p>}
-
-      {ctaTo && (
+      {ctaTo && ctaLabel && (
         <Link
           to={ctaTo}
-          className="mt-auto inline-flex w-fit items-center rounded-full bg-[#0f1220] px-3.5 py-2 text-[11px] font-bold text-white no-underline transition-opacity hover:opacity-90"
+          className="mt-auto flex h-[29px] w-fit items-center rounded-full bg-[#0f1220] px-[14px] font-body text-[10.5px] font-bold leading-[13px] text-white no-underline transition-opacity hover:opacity-90"
         >
           {ctaLabel}
         </Link>

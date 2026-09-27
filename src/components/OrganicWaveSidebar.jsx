@@ -96,17 +96,8 @@ export default function OrganicWaveSidebar({ menuGroups = [], onExpand, user, on
                   aria-label={t(item.label)}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  {/* Ikon "Squircle Active App Grid" dari Figma untuk item aktif */}
-                  {isActive ? (
-                    <div className="grid h-6 w-6 grid-cols-2 gap-1 p-0.5" aria-hidden="true">
-                      <span className="h-2.5 w-2.5 rounded-[3px] bg-[#6f6bef]" />
-                      <span className="h-2.5 w-2.5 rounded-[3px] bg-[#9a97f5]" />
-                      <span className="h-2.5 w-2.5 rounded-[3px] bg-[#6f6bef]" />
-                      <span className="h-2.5 w-2.5 rounded-[3px] bg-[#c2c0fa]" />
-                    </div>
-                  ) : (
-                    <Icon size={20} strokeWidth={1.9} />
-                  )}
+                  {/* Selalu tampilkan icon menu asli — aktif atau tidak */}
+                  <Icon size={20} strokeWidth={1.9} />
                 </Link>
 
                 {/* Tooltip melayang — pengganti label yang hilang di mode rail */}

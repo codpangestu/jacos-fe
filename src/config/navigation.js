@@ -139,3 +139,20 @@ export const NAV_MENU_GROUPS = {
     },
   ],
 }
+
+// Tab di "Top Navigation Bar" (frame Figma "JACOS Admin - Modern Command
+// Center"). Di Figma isinya "Dashboard | Audit Log | Integrations" —
+// "Integrations" tidak ada di JACOS, jadi diganti pintasan seksi lain yang
+// nyata. Didaftar per role supaya route admin tidak bocor ke guru.
+export const NAV_TOP_TABS = {
+  admin: [
+    { label: 'dashboard.title', to: '/admin/dashboard' },
+    { label: 'navMenu.auditLog', to: '/admin/audit-log' },
+    { label: 'navMenu.financeDashboard', to: '/admin/finance/dashboard' },
+  ],
+  guru: [
+    { label: 'dashboard.title', to: '/guru/dashboard' },
+    { label: 'navMenu.attendanceInput', to: '/guru/attendance' },
+    { label: 'navMenu.pickupVerify', to: '/guru/pickup/verify' },
+  ],
+}

@@ -1,62 +1,63 @@
 import { Link } from 'react-router-dom'
 
-// Kartu aksi di sisi kanan hero (frame Figma "Hero & Feature Cards Row").
-// Figma memakai ilustrasi bitmap 111x97; di sini diganti ikon lucide di dalam
-// chip berwarna supaya konsisten dengan konvensi ikon project (lucide-react
-// saja, tanpa emoji/ilustrasi raster baru).
-// Varian `dark:` di sini perlu karena token *-fg yang ada hanya mencakup 5 tone
-// brand (primary/accent/success/danger/neutral), sedangkan biru & indigo Figma
-// belum jadi token. Terukur: indigo di atas tint-nya sendiri hanya 2.66:1 di
-// dark (gagal ambang 3:1 elemen non-teks), biru 3.21:1 (mepet) — jadi keduanya
-// dinaikkan ke shade yang lebih terang. Saat migrasi token, dua nilai ini harus
-// diserap jadi token `*-fg` supaya varian dark: bisa dihapus dari sini.
-const TONE_STYLES = {
-  blue: 'bg-[#2082f5]/10 text-[#2082f5] dark:text-[#35aefc]',
-  indigo: 'bg-[#5b61f6]/10 text-[#5b61f6] dark:text-[#9a97f5]',
-  amber: 'bg-accent-500/12 text-accent-fg',
-  neutral: 'bg-bg-page text-text-secondary',
-}
-
 /**
- * @param {boolean} unavailable - modul belum punya endpoint backend. Dirender
- *   sebagai kartu dashed non-link, bukan tombol yang menuntun ke halaman kosong.
+ * Kartu aksi di blok kanan hero.
+ * Ilustrasi besar langsung di atas card (tanpa kotak background),
+ * judul + subtitle di bawahnya rata kiri.
  */
 export default function ActionTileCard({
   icon: Icon,
+  image,
+  imageAlt,
   title,
   meta,
   to,
   tone = 'blue',
   unavailable = false,
 }) {
+  const base =
+    'flex flex-col rounded-3xl bg-white border border-[#e8eaf0] p-4 shadow-sm'
+
   const body = (
     <>
-      <span
-        className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
-          unavailable ? TONE_STYLES.neutral : TONE_STYLES[tone]
-        }`}
-      >
-        <Icon size={20} />
-      </span>
-      <div className="mt-auto pt-4">
-        <p className="font-heading text-sm font-bold text-text-primary">{title}</p>
-        <p className="mt-1 text-xs text-text-secondary">{meta}</p>
+      {/* Ilustrasi — tanpa background, gambar langsung di card */}
+      <div className="mb-3 flex h-[110px] items-center justify-center overflow-hidden">
+        {image ? (
+          <img
+            src={image}
+            alt={imageAlt ?? title}
+            className="h-full w-full object-contain"
+            draggable="false"
+          />
+        ) : (
+          Icon && (
+            <span className="text-[#2082f5]">
+              <Icon size={48} strokeWidth={1.3} />
+            </span>
+          )
+        )}
       </div>
+
+      {/* Teks */}
+      <p className="text-[13px] font-bold leading-tight text-[#171438] dark:text-text-primary">
+        {title}
+      </p>
+      {meta && (
+        <p className="mt-0.5 text-[11px] leading-tight text-[#94a1b2]">{meta}</p>
+      )}
     </>
   )
 
-  const base = 'flex min-h-[170px] flex-col rounded-3xl p-4'
-
-  if (unavailable || !to) {
+  if (unavailable) {
     return (
-      <div className={`${base} border border-dashed border-border bg-bg-surface/60`}>{body}</div>
+      <div className={`${base} border-dashed opacity-70`}>{body}</div>
     )
   }
 
   return (
     <Link
       to={to}
-      className={`${base} border border-border bg-bg-surface no-underline transition-shadow hover:shadow-md`}
+      className={`${base} no-underline transition-all hover:-translate-y-0.5 hover:shadow-md`}
     >
       {body}
     </Link>

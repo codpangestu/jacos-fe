@@ -1,27 +1,22 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 
 /**
- * Blok hero dashboard Admin (frame Figma "Headline Block"): sapaan + badge role
- * + headline + subjudul, dengan slot `children` di kanan untuk kartu aksi.
+ * Blok hero — frame Figma "Hero & Feature Cards Row" (1216x204).
  *
- * Catatan adaptasi: Figma menaruh "Top Navigation Bar" horizontal (tab
- * Dashboard/Audit Log/Integrations + search + "Buat Pengumuman") di dalam area
- * konten. Di project ini fungsi itu sudah dipegang topbar DashboardLayout
- * (judul, search, tema, bahasa, notifikasi, avatar), jadi yang dipertahankan
- * hanya CTA "Buat Pengumuman" — dipindah ke sini supaya tidak ada dua bar
- * navigasi bertumpuk.
+ * Ukuran yang disalin persis dari Figma:
+ * - Headline Block 521px, VERTICAL gap 6
+ *   - baris sapaan: "Hi, {nama}!" Inter 700 28/34 + badge role pill #5B61F6
+ *   - headline Inter 700 25/30
+ *   - subjudul Inter 400 12/15 #64748b
+ * - Blok kanan 661px, HORIZONTAL gap 16 → chip "+" 105x22 + 3 kartu
+ *
+ * Font di Figma untuk blok ini adalah Inter (bukan Plus Jakarta Sans), jadi
+ * dipakai `font-body` supaya plek. Chip "+" di Figma (105x22 #F5F3FB dengan
+ * kotak 28x19 #5B61F6) tidak punya perilaku yang jelas di desain, jadi
+ * dirender sebagai elemen dekoratif non-interaktif (aria-hidden).
  */
-export default function CommandHero({
-  name,
-  roleBadge,
-  headline,
-  subtitle,
-  ctaLabel,
-  ctaTo,
-  children,
-}) {
+export default function CommandHero({ name, roleBadge, headline, subtitle, children }) {
   const { t } = useTranslation()
   const hour = new Date().getHours()
   const greetingKey =
@@ -34,38 +29,36 @@ export default function CommandHero({
           : 'dashboard.greetingNight'
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-      <div className="flex flex-col justify-center gap-2">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <h2 className="font-heading text-[26px] font-bold leading-tight text-text-primary lg:text-[28px]">
+    <section className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+      {/* Headline Block */}
+      <div className="flex max-w-[521px] flex-col gap-[6px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-body text-[28px] font-bold leading-[34px] text-text-primary">
             {t(greetingKey)}, {name}!
-          </h2>
+          </span>
           {roleBadge && (
-            <span className="rounded-full bg-[#5b61f6] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+            <span className="rounded-full bg-[#5b61f6] px-[6px] py-[1px] font-body text-[10px] font-bold leading-[12px] text-white">
               {roleBadge}
             </span>
           )}
         </div>
-
-        <p className="font-heading text-xl font-bold leading-snug text-text-primary lg:text-[25px]">
-          {headline}
-        </p>
-        <p className="max-w-xl text-[13px] leading-relaxed text-text-secondary">{subtitle}</p>
-
-        {ctaTo && (
-          <div className="mt-3">
-            <Link
-              to={ctaTo}
-              className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#0f1220] px-4 py-2.5 text-sm font-semibold text-white no-underline transition-opacity hover:opacity-90"
-            >
-              <Plus size={15} />
-              {ctaLabel}
-            </Link>
-          </div>
-        )}
+        <p className="font-body text-[25px] font-bold leading-[30px] text-text-primary">{headline}</p>
+        <p className="font-body text-[12px] leading-[15px] text-text-secondary">{subtitle}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">{children}</div>
+      {/* Feature cards row */}
+      <div className="flex items-stretch gap-4">
+        <span
+          aria-hidden="true"
+          className="hidden h-[22px] w-[105px] shrink-0 items-center self-center rounded-3xl bg-[#f5f3fb] pl-[3px] sm:flex"
+        >
+          <span className="flex h-[19px] w-[28px] items-center justify-center rounded-lg bg-[#5b61f6] text-white">
+            <Plus size={13} />
+          </span>
+        </span>
+
+        <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">{children}</div>
+      </div>
     </section>
   )
 }

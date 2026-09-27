@@ -1,50 +1,52 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, CalendarRange, CalendarX2, Receipt, UserCog } from 'lucide-react'
+import { AlertTriangle, CalendarX2, Receipt, UserCog } from 'lucide-react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import CommandHero from '../../components/dashboard/CommandHero'
 import ActionTileCard from '../../components/dashboard/ActionTileCard'
 import AttendanceReminderCard from '../../components/dashboard/AttendanceReminderCard'
 import NotificationsCard from '../../components/dashboard/NotificationsCard'
+import CalendarCard from '../../components/dashboard/CalendarCard'
 import ClassStatusCard from '../../components/dashboard/ClassStatusCard'
 import GaugeCard from '../../components/dashboard/GaugeCard'
 import PickupMonitorCard from '../../components/dashboard/PickupMonitorCard'
 import AgendaHighlightCard from '../../components/dashboard/AgendaHighlightCard'
-import ModulePlaceholderCard from '../../components/dashboard/ModulePlaceholderCard'
 import { NAV_MENU_GROUPS } from '../../config/navigation'
 import { apiGet, apiPost } from '../../lib/api'
-import { formatCurrency, formatDate, formatDateLong, todayInputValue } from '../../lib/format'
-import { getUser, ROLE_LABEL } from '../../lib/auth'
+import { formatCurrency, formatDateLong, todayInputValue } from '../../lib/format'
+import { getUser } from '../../lib/auth'
+import imgApprovalCuti from '../../assets/picture/aprovval cuti.webp'
+import imgFinance from '../../assets/picture/finance.webp'
+import imgGuruPengganti from '../../assets/picture/guru pengganti.webp'
 
 const menuGroups = NAV_MENU_GROUPS.admin
 
 /**
- * Dashboard Admin — disusun ulang mengikuti frame Figma
- * "🖥️ JACOS Admin - Modern Command Center" (node 33:567).
+ * Dashboard Admin — layout mengikuti frame Figma "🖥️ JACOS Admin - Modern
+ * Command Center" (node 33:567) dengan isi data JACOS yang sekarang.
  *
  * Susunan: hero + 3 kartu aksi → 3 kolom tengah (notifikasi / pengingat
- * absensi / kalender) → 3 modul bawah (status rombel / highlight pengumuman /
- * gauge + monitoring penjemputan).
+ * absensi / kalender) → baris bawah grid 12 kolom (status rombel 6 / kartu
+ * biru 2 / gauge + monitoring penjemputan 4).
  *
- * Yang TIDAK diadopsi dari Figma beserta alasannya:
- * - "Top Navigation Bar" horizontal → fungsinya sudah ada di topbar
- *   DashboardLayout; CTA "Buat Pengumuman" dipindah ke CommandHero.
- * - Kartu "Konsultasi Wali Santri" → tidak ada endpoint-nya; kartu birunya
- *   dialihkan untuk pengumuman terbaru (data nyata).
- * - "Guru Pengganti" & "Kalender & Agenda" → belum ada endpoint backend-nya,
- *   dirender sebagai placeholder eksplisit (tanpa angka contoh).
+ * Proporsi kolom mengikuti Figma: 380/400/397 (≈ sepertiga) untuk baris tengah,
+ * dan 574/192/418 → 6/2/4 dari 12 kolom untuk baris bawah.
  *
- * Status error sengaja dibedakan dari nilai 0: kalau query gagal, komponen
- * menerima isLoading=true sehingga menampilkan "-", bukan "0 siswa" yang bisa
- * salah dibaca sebagai kondisi nyata.
+ * Empat bagian sengaja dibiarkan kosong karena backend belum punya endpoint-nya
+ * (permintaan: "modul tanpa endpoint tetap kosong"): agenda/event di kolom
+ * notifikasi, daftar jadwal di kolom kalender, kartu "Konsultasi Wali Santri",
+ * dan tombol "Broadcast WA". Tombol broadcast dirender disabled, bukan
+ * dihilangkan, supaya bentuknya tetap plek tanpa jadi kontrol palsu.
+ *
+ * Status error dibedakan dari nilai 0 — kalau query gagal, komponen menerima
+ * isLoading sehingga menampilkan "-", bukan "0 siswa" yang bisa disalahartikan.
  */
 export default function AdminDashboard() {
   const { t } = useTranslation()
   const today = todayInputValue()
   const storedUser = getUser()
   const userName = storedUser?.name ?? t('nav.defaultUserName')
-  const roleLabel = ROLE_LABEL[storedUser?.role] ?? '-'
   const queryClient = useQueryClient()
 
   const [reminded, setReminded] = useState({})
@@ -83,17 +85,11 @@ export default function AdminDashboard() {
   })
   const financeData = financeQuery.data
 
-  const announcementsQuery = useQuery({
-    queryKey: ['announcements'],
-    queryFn: () => apiGet('/api/announcements'),
-  })
-  const announcements = announcementsQuery.data?.announcements ?? []
-
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 'dashboard'],
     queryFn: () => apiGet('/api/notifications'),
   })
-  const notifications = (notificationsQuery.data?.data ?? []).slice(0, 4)
+  const notifications = notificationsQuery.data?.data ?? []
   const unreadCount = notificationsQuery.data?.unread_count ?? 0
 
   const dismissalQuery = useQuery({
@@ -101,7 +97,6 @@ export default function AdminDashboard() {
     queryFn: () => apiGet('/api/admin/settings/dismissal-cutoff'),
   })
 
-  // Query yang kegagalannya membuat seluruh halaman menampilkan angka palsu.
   const criticalQueries = [attendanceQuery, submissionQuery, financeQuery]
   const hasCriticalError = criticalQueries.some((q) => q.isError)
 
@@ -116,8 +111,7 @@ export default function AdminDashboard() {
   })
 
   // Backend belum punya endpoint bulk reminder, jadi tombol "kirim ke semua"
-  // memanggil endpoint per-rombel yang sama untuk tiap rombel yang punya wali
-  // kelas. Hanya rombel tanpa wali yang dilewati (endpoint akan menolaknya).
+  // memanggil endpoint per-rombel yang sama untuk tiap rombel yang punya wali kelas.
   const remindAllMutation = useMutation({
     mutationFn: async (classroomIds) => {
       await Promise.all(
@@ -179,7 +173,6 @@ export default function AdminDashboard() {
       }
     })
 
-  const latestAnnouncement = announcements[0]
   const cutoffTime = dismissalQuery.data?.setting?.cutoff_time?.slice(0, 5)
 
   return (
@@ -214,17 +207,17 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ── 1. Hero + kartu aksi ── */}
+      {/* ── 1. Hero + kartu aksi (Figma 1216x204) ── */}
       <CommandHero
         name={userName}
-        roleBadge={roleLabel}
+        roleBadge={t('dashboard.roleBadgeAdmin')}
         headline={t('dashboard.heroHeadline')}
         subtitle={t('dashboard.heroSubtitle')}
-        ctaLabel={t('dashboard.newAnnouncement')}
-        ctaTo="/admin/announcements"
       >
         <ActionTileCard
           icon={CalendarX2}
+          image={imgApprovalCuti}
+          imageAlt="Approval Cuti Guru"
           tone="indigo"
           title={t('dashboard.actionLeaveTitle')}
           meta={
@@ -236,21 +229,25 @@ export default function AdminDashboard() {
         />
         <ActionTileCard
           icon={Receipt}
+          image={imgFinance}
+          imageAlt="Konfirmasi Bayar SPP"
           tone="amber"
           title={t('dashboard.actionInvoiceTitle')}
           meta={t('dashboard.actionInvoiceMeta', { count: financeData?.overdue_count ?? 0 })}
           to="/admin/finance/invoices"
         />
-        {/* Modul "Guru Pengganti" ada di Figma tapi belum ada endpoint-nya. */}
+        {/* Modul "Guru Pengganti" ada di Figma, endpoint-nya belum ada. */}
         <ActionTileCard
           icon={UserCog}
+          image={imgGuruPengganti}
+          imageAlt="Guru Pengganti"
           title={t('dashboard.actionSubstituteTitle')}
           meta={t('dashboard.moduleUnavailable')}
           unavailable
         />
       </CommandHero>
 
-      {/* ── 2. Kolom tengah ── */}
+      {/* ── 2. Kolom tengah (Figma 1216x288, gap 16) ── */}
       <div className="grid gap-4 lg:grid-cols-3">
         <NotificationsCard
           items={notifications}
@@ -258,9 +255,7 @@ export default function AdminDashboard() {
           isLoading={notificationsQuery.isPending}
           onMarkAllRead={() => markAllReadMutation.mutate()}
           onItemClick={(id) => markReadMutation.mutate(id)}
-          viewAllTo="/admin/announcements"
         />
-
         <AttendanceReminderCard
           classes={incompleteClasses}
           reminded={reminded}
@@ -274,17 +269,10 @@ export default function AdminDashboard() {
           isBulkPending={remindAllMutation.isPending}
           viewAllTo="/admin/attendance/submission-status"
         />
-
-        <ModulePlaceholderCard
-          title={t('dashboard.calendarTitle')}
-          icon={CalendarRange}
-          message={t('dashboard.calendarUnavailable')}
-          ctaLabel={t('navMenu.academicYears')}
-          ctaTo="/admin/academic-years"
-        />
+        <CalendarCard />
       </div>
 
-      {/* ── 3. Baris bawah ── */}
+      {/* ── 3. Baris bawah (Figma 1216x318, kolom 574/192/418) ── */}
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-6">
           <ClassStatusCard
@@ -296,52 +284,40 @@ export default function AdminDashboard() {
 
         <div className="lg:col-span-2">
           <AgendaHighlightCard
-            title={
-              latestAnnouncement
-                ? latestAnnouncement.title
-                : t('dashboard.announcementHighlightTitle')
-            }
-            description={
-              latestAnnouncement ? latestAnnouncement.body : t('dashboard.announcementHighlightEmpty')
-            }
-            meta={latestAnnouncement ? formatDate(latestAnnouncement.created_at) : undefined}
-            ctaLabel={t('dashboard.announcementHighlightCta')}
-            ctaTo={latestAnnouncement ? '/admin/announcements' : undefined}
-            empty={!latestAnnouncement}
+            title={t('dashboard.agendaTitle')}
+            emptyMessage={t('dashboard.agendaEmptyMessage')}
           />
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <GaugeCard
-              label={t('dashboard.gaugeAttendanceLabel')}
+              overline={t('dashboard.gaugeAttendanceOverline')}
               value={attendancePct}
               tone="indigo"
               isLoading={attendanceQuery.isPending || attendanceQuery.isError}
-              caption={
+              label={t('dashboard.gaugeAttendanceLabel')}
+              subLines={[
                 totalStudents > 0
-                  ? t('dashboard.gaugeAttendanceCaption', {
-                      present: hadirCount,
-                      total: totalStudents,
-                    })
-                  : t('dashboard.gaugeNoData')
-              }
-              ctaLabel={t('dashboard.gaugeAttendanceCta')}
-              ctaTo="/admin/reports/attendance"
+                  ? t('dashboard.gaugeAttendanceSub', { present: hadirCount, total: totalStudents })
+                  : t('dashboard.gaugeNoData'),
+                t('dashboard.gaugeAttendanceSub2'),
+              ]}
             />
             <GaugeCard
-              label={t('dashboard.gaugeFinanceLabel')}
+              overline={t('dashboard.gaugeFinanceOverline')}
               value={financeData?.collection_rate ?? 0}
               tone="blue"
               isLoading={financeQuery.isPending || financeQuery.isError}
-              caption={
+              label={t('dashboard.gaugeFinanceLabel', { count: financeData?.overdue_count ?? 0 })}
+              subLines={[
+                t('dashboard.gaugeFinanceSub', { count: financeData?.overdue_count ?? 0 }),
                 financeData
-                  ? t('dashboard.gaugeFinanceCaption', {
-                      count: financeData.overdue_count ?? 0,
+                  ? t('dashboard.gaugeFinanceSub2', {
                       amount: formatCurrency(financeData.total_outstanding ?? 0),
                     })
-                  : t('dashboard.gaugeNoData')
-              }
+                  : t('dashboard.gaugeNoData'),
+              ]}
               ctaLabel={t('dashboard.gaugeFinanceCta')}
               ctaTo="/admin/finance/dashboard"
             />

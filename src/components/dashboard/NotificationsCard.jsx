@@ -1,14 +1,21 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Bell, BellOff, Check } from 'lucide-react'
+import { Check, Info, MoreHorizontal } from 'lucide-react'
 import { formatDateTime } from '../../lib/format'
 
 /**
- * "Notifikasi Sekolah" (frame Figma "Notifications Column").
+ * Kolom notifikasi — frame Figma "Notifications Column" (380x270, r24,
+ * padding 15/16). Isinya persis dua kartu bertumpuk seperti Figma:
  *
- * Payload notifikasi Laravel: { id, data: { title, message, url }, read_at, created_at }.
- * Markup & pemetaan field sengaja disamakan dengan NotificationDrawer supaya
- * satu tipe payload hanya punya satu cara baca.
+ * 1. Kartu agenda (Figma: "Swiped Notification Item" / "White Event Card",
+ *    300x92, r20, padding 11/14) — di Figma berisi acara + tanggal + jam.
+ *    Belum ada endpoint kalender/agenda untuk admin, jadi isinya kosong.
+ * 2. Kartu notifikasi (Figma: "Message Notification Card", 346x86, r20,
+ *    padding 11/14) — heading + baris pengirim + kotak cuplikan pesan.
+ *
+ * Catatan: Figma menggambar kartu pertama dalam keadaan "terswipe" (ada panel
+ * aksi di belakangnya). Itu state interaksi, bukan layout, jadi yang dirender
+ * adalah bentuk kartunya saja.
  */
 export default function NotificationsCard({
   items = [],
@@ -16,97 +23,87 @@ export default function NotificationsCard({
   isLoading = false,
   onMarkAllRead,
   onItemClick,
-  viewAllTo,
 }) {
   const { t } = useTranslation()
+  const latest = items[0]
+  const payload = latest
+    ? typeof latest.data === 'string'
+      ? JSON.parse(latest.data)
+      : (latest.data ?? {})
+    : null
 
   return (
-    <div className="flex flex-col rounded-3xl border border-border bg-bg-surface p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Bell size={17} className="shrink-0 text-text-primary" />
-          <h3 className="truncate font-heading text-[15px] font-bold text-text-primary">
-            {t('dashboard.notificationsTitle')}
-          </h3>
-          {unread > 0 && (
-            <span className="shrink-0 rounded-md bg-danger-500/12 px-1.5 py-0.5 text-[11px] font-bold text-danger-fg">
-              {unread}
-            </span>
-          )}
-        </div>
+    <div className="flex flex-col gap-[10px] rounded-3xl border border-border bg-bg-surface p-[15px] px-4">
+      {/* Header */}
+      <div className="flex h-[19px] items-center justify-between gap-3">
+        <h3 className="font-body text-[16px] font-bold leading-[19px] text-text-primary">
+          {t('dashboard.notificationsTitle')}
+        </h3>
         {unread > 0 && onMarkAllRead && (
           <button
             type="button"
             onClick={onMarkAllRead}
-            className="flex shrink-0 cursor-pointer items-center gap-1 text-xs font-semibold text-text-secondary transition-colors hover:text-text-primary"
+            className="flex cursor-pointer items-center gap-[5px] text-[12px] font-medium leading-[15px] text-text-secondary transition-colors hover:text-text-primary"
           >
             <Check size={12} />
-            {t('dashboard.notificationsMarkAll')}
+            {t('dashboard.notificationsClear')}
           </button>
         )}
       </div>
 
-      {isLoading && (
-        <p className="mt-4 text-xs text-text-secondary">{t('common.loading')}</p>
-      )}
-
-      {!isLoading && items.length === 0 && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
-          <BellOff size={22} className="text-text-secondary" />
-          <p className="text-xs text-text-secondary">{t('dashboard.notificationsEmpty')}</p>
+      {/* Kartu agenda — belum ada endpoint kalender/agenda admin */}
+      <div className="flex flex-col gap-[5px] rounded-[20px] border border-border bg-bg-surface p-[11px] px-[14px]">
+        <div className="flex h-4 items-center justify-between">
+          <span className="text-[10px] font-medium leading-[12px] text-[#94a3b8]">
+            {t('dashboard.agendaUpcoming')}
+          </span>
+          <MoreHorizontal size={14} className="text-[#94a3b8]" />
         </div>
-      )}
+        <p className="text-[12px] font-semibold leading-[15px] text-text-primary">
+          {t('dashboard.agendaEmpty')}
+        </p>
+      </div>
 
-      {items.length > 0 && (
-        <ul className="mt-3 flex flex-col">
-          {items.map((n) => {
-            const payload = typeof n.data === 'string' ? JSON.parse(n.data) : (n.data ?? {})
-            const isUnread = !n.read_at
-            return (
-              <li key={n.id}>
-                <Link
-                  to={payload.url || viewAllTo || '/admin/dashboard'}
-                  onClick={() => isUnread && onItemClick?.(n.id)}
-                  className="flex items-start gap-2.5 border-b border-border py-2.5 no-underline last:border-0"
-                >
-                  <span
-                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                      isUnread ? 'bg-[#5b61f6] dark:bg-[#9a97f5]' : 'bg-border'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-[13px] ${
-                        isUnread ? 'font-semibold text-text-primary' : 'font-medium text-text-secondary'
-                      }`}
-                    >
-                      {payload.title ?? payload.type ?? t('nav.notifications')}
-                    </p>
-                    {(payload.message || payload.body) && (
-                      <p className="line-clamp-2 text-[11px] leading-relaxed text-text-secondary">
-                        {payload.message ?? payload.body}
-                      </p>
-                    )}
-                    <p className="mt-1 text-[10px] text-text-secondary">
-                      {formatDateTime(n.created_at)}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+      {/* Kartu notifikasi */}
+      <div className="flex flex-col gap-[6px] rounded-[20px] border border-border bg-bg-surface p-[11px] px-[14px]">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-[12.5px] font-bold leading-[15px] text-text-primary">
+            {payload?.title ?? t('dashboard.notificationsEmpty')}
+          </p>
+          <MoreHorizontal size={14} className="shrink-0 text-[#94a3b8]" />
+        </div>
 
-      {viewAllTo && items.length > 0 && (
-        <Link
-          to={viewAllTo}
-          className="mt-3 block text-xs font-semibold text-primary-fg no-underline hover:underline"
-        >
-          {t('common.viewAll')}
-        </Link>
-      )}
+        {isLoading && <p className="text-[10px] text-text-secondary">{t('common.loading')}</p>}
+
+        {!isLoading && payload && (
+          <>
+            <div className="flex items-center gap-[5px]">
+              <Info size={12} className="shrink-0 text-[#94a3b8]" />
+              <span className="truncate text-[10px] font-medium leading-[12px] text-[#94a3b8]">
+                {t('dashboard.notificationFrom', { time: formatDateTime(latest.created_at) })}
+              </span>
+            </div>
+            <div className="rounded-lg bg-[#f3f3fa] p-[6px] px-[10px] dark:bg-white/5">
+              <p className="line-clamp-1 text-[9.5px] leading-[11px] text-[#94a3b8]">
+                {payload.message ?? payload.body ?? '-'}
+              </p>
+            </div>
+            <Link
+              to={payload.url || '/admin/dashboard'}
+              onClick={() => !latest.read_at && onItemClick?.(latest.id)}
+              className="text-[10px] font-semibold text-primary-fg no-underline hover:underline"
+            >
+              {t('common.viewAll')}
+            </Link>
+          </>
+        )}
+
+        {!isLoading && !payload && (
+          <p className="text-[10px] leading-[12px] text-[#94a3b8]">
+            {t('dashboard.notificationsEmpty')}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
