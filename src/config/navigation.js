@@ -7,6 +7,7 @@ import {
   FileClock,
   GraduationCap,
   History,
+  Inbox,
   LayoutDashboard,
   Megaphone,
   QrCode,
@@ -31,6 +32,14 @@ export const NAV_MENU_GROUPS = {
     {
       label: 'navMenu.main',
       items: [{ label: 'dashboard.title', icon: LayoutDashboard, to: '/admin/dashboard' }],
+    },
+    {
+      // Kotak masuk pengaduan Orang Tua ke Tata Usaha. Ditaruh tepat setelah
+      // Menu Utama karena sifatnya inbox harian, bukan data master.
+      // Catatan: menu ini TIDAK ada di frame Figma "Left Organic Curve Sidebar"
+      // — ditambahkan bersama fiturnya (lihat context.md, Pengaduan 2026-09-28).
+      label: 'navMenu.complaints',
+      items: [{ label: 'complaints.title', icon: Inbox, to: '/admin/complaints' }],
     },
     {
       label: 'navMenu.dataMaster',

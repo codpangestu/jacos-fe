@@ -243,10 +243,11 @@ export default function OrtuAccount() {
 
           <div className="h-px w-full bg-[#EEF1F4]" />
 
-          <button
-            type="button"
-            onClick={() => setHelpOpen(true)}
-            className="flex items-center justify-between gap-3 py-1 text-left"
+          {/* Dulu ini placeholder yang cuma membuka modal "segera hadir". Sejak
+              fitur pengaduan ada, baris ini jadi pintu masuknya. */}
+          <Link
+            to="/ortu/complaints"
+            className="flex items-center justify-between gap-3 py-1 text-left no-underline"
           >
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E0F2FE] text-[#0284C7]">
@@ -254,11 +255,11 @@ export default function OrtuAccount() {
               </span>
               <div>
                 <p className="text-xs font-bold text-[#1A2A3A]">{t('ortu.contactAdminTitle')}</p>
-                <p className="text-[10px] text-[#627283]">{t('ortu.contactAdminHint')}</p>
+                <p className="text-[10px] text-[#627283]">{t('complaints.accountRowHint')}</p>
               </div>
             </div>
             <ChevronRight size={16} className="shrink-0 text-[#9CA3AF]" />
-          </button>
+          </Link>
 
           {activeConsents.length > 0 && (
             <>

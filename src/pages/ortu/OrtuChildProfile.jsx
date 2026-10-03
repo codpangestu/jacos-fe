@@ -5,7 +5,7 @@ import { CalendarCheck, ChevronRight, QrCode, Receipt, UserRound, ChevronLeft, T
 import ResponsiveShell from '../../layouts/ResponsiveShell'
 import StatusBadge from '../../components/ui/StatusBadge'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
-import { apiGet, storageUrl } from '../../lib/api'
+import { apiGet } from '../../lib/api'
 import { formatDate, formatTime, todayInputValue } from '../../lib/format'
 import boyVector from '../../assets/picture/boy.svg'
 import girlVector from '../../assets/picture/girl.svg'
@@ -114,27 +114,55 @@ export default function OrtuChildProfile() {
 
           {/* Character vector + nama */}
           <div className="relative z-10 flex flex-col items-center">
-            {/* Vector karakter — boy/girl otomatis */}
-            <div className="relative h-[190px] w-[190px]">
-              {student?.photo_path ? (
-                <img
-                  src={storageUrl(student.photo_path)}
-                  alt={student.name}
-                  className="h-full w-full rounded-full object-cover border-4 border-white shadow-xl"
-                />
-              ) : (
-                <img
-                  src={student?.gender === 'female' || activeChild?.gender === 'female' ? girlVector : boyVector}
-                  alt={student?.name ?? activeChild.name}
-                  className="h-full w-full object-contain drop-shadow-2xl"
-                  draggable="false"
-                />
-              )}
+            {/* Vector karakter — selalu pakai boy/girl SVG, tidak pakai foto */}
+            <div className="relative h-[210px] w-[210px]">
+              {/* Lingkaran dekoratif di belakang karakter */}
+              <div className="absolute inset-0 rounded-full" style={{ background: 'rgba(255,255,255,0.12)', animation: 'ringPulse 3.2s ease-in-out infinite' }} />
+              <div className="absolute inset-[-12px] rounded-full" style={{ background: 'rgba(255,255,255,0.07)', animation: 'ringPulse 3.2s ease-in-out 0.6s infinite' }} />
+
+              {/* Karakter SVG floating */}
+              <img
+                src={(student?.gender ?? activeChild?.gender) === 'female' ? girlVector : boyVector}
+                alt={student?.name ?? activeChild.name}
+                className="relative z-10 h-full w-full object-contain drop-shadow-2xl"
+                style={{ animation: 'avatarFloat 3.2s ease-in-out infinite' }}
+                draggable="false"
+              />
+
+              {/* Shadow bawah karakter */}
+              <div
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-5 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.18)', filter: 'blur(8px)', animation: 'shadowPulse 3.2s ease-in-out infinite' }}
+              />
               {/* Badge bintang — di samping kepala, atas kanan */}
-              <div className="absolute top-6 -right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-yellow-400 shadow-md">
+              <div
+                className="absolute top-6 -right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-yellow-400 shadow-md"
+                style={{ animation: 'badgeBounce 2s ease-in-out infinite' }}
+              >
                 <Star size={15} className="fill-white text-white" />
               </div>
             </div>
+
+            {/* Keyframes inline via style tag */}
+            <style>{`
+              @keyframes avatarFloat {
+                0%, 100% { transform: translateY(0px); }
+                50%       { transform: translateY(-10px); }
+              }
+              @keyframes shadowPulse {
+                0%, 100% { opacity: 0.5; transform: translateX(-50%) scaleX(1); }
+                50%       { opacity: 0.2; transform: translateX(-50%) scaleX(0.7); }
+              }
+              @keyframes ringPulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50%       { transform: scale(1.06); opacity: 0.6; }
+              }
+              @keyframes badgeBounce {
+                0%, 100% { transform: scale(1) rotate(0deg); }
+                30%       { transform: scale(1.18) rotate(-8deg); }
+                60%       { transform: scale(1.08) rotate(5deg); }
+              }
+            `}</style>
 
             {/* Nama & info */}
             <h2 className="mt-3 font-heading text-[22px] font-extrabold text-white drop-shadow-sm">

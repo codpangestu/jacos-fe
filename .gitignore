@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 PRD.md
+
+# E2E testing temp artifacts
+.tmp-e2e

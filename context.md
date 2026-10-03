@@ -70,7 +70,7 @@ i18n/             — index.js + locales/{id,en}.json
 
 Helper per-role membungkus elemen: `admin()`, `guru()`, `staff()` → `<RoleGuard role="...">`, `authed()` → `<AuthGuard>`, `ortu()` → `<OrtuGuard>`. `OrtuGuard` punya 2 tugas ekstra: redirect ke `/consent/child` kalau ada anak belum consent, dan ke `/ortu/select-child` kalau >1 anak belum ada yang dipilih aktif.
 
-**41 route utama** terdaftar — Homepage publik `/`, auth `/login|/forgot-password|/reset-password`, per-role prefix `/admin/*`, `/guru/*`, `/ortu/*`, `/staff/*`, plus route lintas-role (`/account/profile`, `/consent/child`). Halaman shared (`PickupVerify`, `SelfAttendance`, `LeaveRequests`) di-mount 2x dengan guard beda tapi satu file yang sama.
+**55 route utama** terdaftar (56 entri termasuk `*` → `NotFound`) — Homepage publik `/`, auth `/login|/forgot-password|/reset-password`, per-role prefix `/admin/*`, `/guru/*`, `/ortu/*`, `/staff/*`, plus route lintas-role (`/account/profile`, `/consent/child`). Halaman shared (`PickupVerify`, `SelfAttendance`, `LeaveRequests`) di-mount 2x dengan guard beda tapi satu file yang sama. Empat terakhir bertema pengaduan: `/admin/complaints` + `/admin/complaints/:id` (2026-09-28), lalu `/ortu/complaints` + `/ortu/complaints/:id` (2026-09-30, dipasang `<OrtuGuard requireChildSelection={false} requireConsent={false}>` — lihat bagian Fitur Pengaduan).
 
 ---
 
@@ -167,6 +167,27 @@ File: `src/layouts/DashboardLayout.jsx`, blok `<aside>` expanded saja. Frame Fig
 - **Isi pill**: Figma menulis "Homepage" — nama halaman mockup-nya, bukan label UI nyata.
 
 **Dark mode:** file Figma cuma punya 1 frame (light), jadi tidak ada acuan. Panel birunya dibiarkan **konstan di kedua tema**; yang ikut tema hanya header/tombol collapse/border (`#F1F5F9` & `#475569` adalah nilai light-mode → di dark jadi `bg-white/10` dan `text-sidebar-text`).
+
+---
+
+## Fitur Pengaduan / Tiket — UI Admin (2026-09-28)
+
+Fitur **baru** (bukan penyambungan fitur lama): `pengaduan`/`complaint`/`chat` nol hasil di seluruh repo. Bentuknya tiket berstatus dengan nomor `PGD-<tahun>-<5 digit>`. User memilih mulai dari **backend + UI Admin dulu**; **UI Ortu belum ada**. Backend-nya (migration, model, policy, 8 route, SLA, notifikasi, audit, 12 test) dicatat di root `context.md` §Fitur Pengaduan.
+
+- `src/pages/admin/AdminComplaints.jsx` (`/admin/complaints`) — 4 tile ringkasan (Baru/Diproses/Selesai/Lewat Target) diambil dari `counts` yang ikut di response list (tanpa request kedua), `FilterBar` (status, kategori, prioritas, overdue, pencarian **debounce 350 ms**), lalu `DataTable` + `StatusBadge`. Reset halaman ditaruh di `changeFilter` (handler), **bukan** `useEffect`, supaya tidak memicu warning `react/set-state-in-effect`.
+- `src/pages/admin/AdminComplaintDetail.jsx` (`/admin/complaints/:id`) — isi + lampiran, thread percakapan (balasan Admin dibedakan latarnya), panel tindak lanjut (priority dengan hint SLA, assignee, catatan penyelesaian, tombol Proses/Selesaikan/Tolak/Buka Kembali), kotak balasan, dan hapus dengan `Modal` konfirmasi. Draft catatan disimpan per-id pengaduan supaya tidak bocor antar tiket.
+- `src/config/navigation.js` — grup menu **`navMenu.complaints`** (ikon `Inbox`) ditaruh tepat setelah Menu Utama. **Menu ini tidak ada di frame Figma**; ditambahkan bersama fiturnya dan itu ditulis di komentar kode.
+- `src/lib/statusLabels.js` — tone baru: `open` → `accent`, `in_progress` → `primary`, `resolved` → `success`.
+- i18n: blok `complaints.*` (**33 key**) + `status.open`/`in_progress`/`resolved` + `navMenu.complaints` di `id.json` & `en.json`. Kedua file itu **CRLF** — kalau menyisipkan key, sertakan `\r\n` eksplisit atau line ending-nya jadi campur.
+
+**UI Ortu juga sudah ada (2026-09-30)** — melengkapi fitur ini:
+
+- `src/pages/ortu/OrtuComplaints.jsx` (`/ortu/complaints`) — kartu pengantar + tombol "Ajukan Pengaduan" (modal: anak opsional dengan opsi "Umum", kategori, subjek, isi, lampiran via `apiPostForm`) di atas `MobileCardList` + badge status/"Lewat Target". Sukses submit → langsung pindah ke detail tiket barunya.
+- `src/pages/ortu/OrtuComplaintDetail.jsx` (`/ortu/complaints/:id`) — breadcrumb, isi + lampiran, thread balasan (balasan pihak sekolah = role ≠ `orang_tua` yang ditandai latar `primary-300/10` — **kebalikan** dari halaman Admin yang justru menandai pengadu), kotak balas, kartu "Informasi Tiket". Tidak ada panel triase/hapus (wewenang Admin).
+- Semua memakai endpoint yang sudah ada (`GET/POST /api/ortu/complaints`, `GET /api/complaints/{id}`, `POST /api/complaints/{id}/replies`) — tidak ada route backend baru.
+- **Pintu masuknya**: baris "Hubungi Tata Usaha" di `OrtuAccount.jsx`, yang sebelumnya cuma placeholder modal "segera hadir", sekarang `<Link to="/ortu/complaints">`. Key i18n barunya `complaints.accountRowHint` (key lama `ortu.contactAdminHint` jadi tidak terpakai). `OrtuDashboard.jsx` tidak disentuh (layout plek Figma).
+- `OrtuGuard` dapat prop `requireConsent` (default `true`); route pengaduan memakai `requireConsent={false}` + `requireChildSelection={false}` supaya sejalan dengan keputusan policy backend (consent bukan syarat menyampaikan keluhan) dan deep-link notifikasi tidak nyangkut di child-switcher/consent gate.
+- Notifikasi yang tadinya ber-`url` `null` sekarang terisi `/ortu/complaints/{id}` (balasan Admin & perubahan status) — lihat root `context.md` §UI Ortu Pengaduan. 15 key i18n baru di blok `complaints.*` (file CRLF).
 
 ---
 
@@ -285,4 +306,5 @@ Dashboard tidak pakai pola N+1 `useQueries` per rombel. Absensi diambil dari **1
 - **Redesain Dashboard Admin Figma (2026-09-25/26) belum pernah diklik-test di browser.** Perlu dicek mata: responsive 3 kolom → 1 kolom, tab `NAV_TOP_TABS` di layar sempit, `OrganicWaveSidebar` saat collapse/hover, dark mode (banyak warna hardcode), dan aksi "Ingatkan"/"Ingatkan semua".
 - **Direkonstruksi dari kode, bukan catatan sesi**: deskripsi supaya shell mobile, Dashboard Ortu v1.0, dan redesain Admin di dokumen ini diturunkan dari membaca kode + `git log` (bukan dari transkrip sesi yang menyentuhnya). Kalau ada detail perilaku yang tidak sesuai, perlakukan kode sebagai sumber kebenaran.
 - **Kontradiksi sidebar belum diputuskan**: dokumen ini (dan implementasi `--color-bg-sidebar: #ffffff` di light + komentar `index.css`) menyebut light = putih, tapi `PRODUCT.md` & root `context.md` masih menulis "sidebar selalu navy di kedua tema". Salah satu harus diperbaiki. Sejak 2026-09-28 nav expanded selalu biru, jadi sisa persoalannya cuma latar kolom + `OrganicWaveSidebar`.
+- **Fitur Pengaduan (Admin 2026-09-28 + Ortu 2026-09-30) belum pernah diklik-test di browser.** Perlu dicek mata: tile ringkasan vs `counts`, filter overdue, alur Proses → Selesaikan (wajib isi catatan penyelesaian), serta di sisi Ortu modal pengajuan di layar sempit, lampiran, dan thread balasan dua arah. Verifikasi yang sudah dilakukan hanya `php artisan test --filter=Complaint` (12 passed / 53 assertions) + `npm run build`/`lint` bersih.
 - **Utang kecil**: `ActionCards.jsx` + 6 komponen dashboard orphan belum dihapus; prop `rightRail` sudah tidak dipakai; SVG ilustrasi >1 MB (`boy`/`girl`/`logo baru`) ikut precache PWA; lint masih 5 warning (0 error).
