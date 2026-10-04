@@ -1,22 +1,25 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
+  CalendarDays,
+  CalendarHeart,
   Check,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
+  CreditCard,
   Stethoscope,
-  CalendarDays,
-  CalendarHeart,
+  Users,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import ResponsiveShell from "../../layouts/ResponsiveShell";
 import NotificationBell from "../../components/NotificationBell";
 import useOrtuChildren from "../../hooks/useOrtuChildren";
 import { apiGet } from "../../lib/api";
 import { setActiveChildId } from "../../lib/activeChild";
-import { formatDate, weekdaysShort } from "../../lib/format";
+import { formatDate, weekdayLong, weekdaysShort } from "../../lib/format";
 import { getUser } from "../../lib/auth";
 import bannerImg from "../../assets/guide/banner.png";
 import banner1 from "../../assets/guide/banner (1).png";
@@ -24,152 +27,144 @@ import banner2 from "../../assets/guide/banner (2).png";
 import boyVector from "../../assets/picture/boy.svg";
 import girlVector from "../../assets/picture/girl.svg";
 
-/* ──────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────
    BANNER SLIDESHOW
-   Slide 1 : gambar banner.png (aset sekolah)
-   Slide 2 : info penjemputan — gradient biru teal
-   Slide 3 : info tagihan/SPP — gradient amber warm
-   Auto-play 4 detik, swipe touch, dot indicator
-──────────────────────────────────────────────────────────── */
-function BannerSlideshow({ navigate }) {
-  const [current, setCurrent] = useState(0)
-  const trackRef = useRef(null)
-  const touchStartX = useRef(null)
-  const timerRef = useRef(null)
+   3 slide · auto-play 4s · swipe · dot overlay
+   FIX: overflow-hidden on container, dot via Tailwind only
+───────────────────────────────────────────────────────────── */
+function BannerSlideshow() {
+  const [current, setCurrent] = useState(0);
+  const touchStartX = useRef(null);
+  const slides = [bannerImg, banner1, banner2];
 
-  const slides = [
-    { id: 'banner' },
-    { id: 'pickup' },
-    { id: 'invoice' },
-  ]
+  const goTo = useCallback(
+    (idx) => setCurrent((idx + slides.length) % slides.length),
+    [slides.length],
+  );
 
-  const goTo = useCallback((idx) => {
-    setCurrent((idx + slides.length) % slides.length)
-  }, [slides.length])
-
-  // Auto-play
   useEffect(() => {
-    timerRef.current = setInterval(() => goTo(current + 1), 4000)
-    return () => clearInterval(timerRef.current)
-  }, [current, goTo])
-
-  // Touch swipe
-  function onTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX
-  }
-  function onTouchEnd(e) {
-    if (touchStartX.current === null) return
-    const delta = e.changedTouches[0].clientX - touchStartX.current
-    if (Math.abs(delta) > 40) goTo(current + (delta < 0 ? 1 : -1))
-    touchStartX.current = null
-  }
+    const t = setInterval(() => goTo(current + 1), 4000);
+    return () => clearInterval(t);
+  }, [current, goTo]);
 
   return (
-    <div className="w-full">
-      {/* Slide track */}
+    <div
+      className="relative h-[157px] w-full overflow-hidden rounded-3xl shadow-[0px_8px_24px_#00000026]"
+      onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        if (touchStartX.current === null) return;
+        const delta = e.changedTouches[0].clientX - touchStartX.current;
+        if (Math.abs(delta) > 40) goTo(current + (delta < 0 ? 1 : -1));
+        touchStartX.current = null;
+      }}
+    >
+      {/* Track */}
       <div
-        className="relative w-full overflow-hidden rounded-[20px]"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        className="flex h-full w-full transition-transform duration-500 ease-in-out"
+        style={{ transform: `translateX(-${current * 100}%)` }}
       >
-        <div
-          ref={trackRef}
-          className="flex transition-transform duration-500 ease-in-out"
-          style={{ transform: `translateX(-${current * 100}%)` }}
-        >
-          {/* Slide 1 — banner.png */}
-          <div className="w-full shrink-0">
+        {slides.map((src, i) => (
+          <div key={i} className="h-full w-full shrink-0">
             <img
-              src={bannerImg}
-              alt="JACOS Banner"
-              className="h-[140px] w-full object-cover"
+              src={src}
+              alt={i === 0 ? "JACOS" : ""}
+              aria-hidden={i !== 0}
+              className="h-full w-full object-cover"
               draggable="false"
             />
           </div>
-
-          {/* Slide 2 — banner (1).png */}
-          <div className="w-full shrink-0">
-            <img
-              src={banner1}
-              alt=""
-              aria-hidden="true"
-              className="h-[140px] w-full object-cover"
-              draggable="false"
-            />
-          </div>
-
-          {/* Slide 3 — banner (2).png */}
-          <div className="w-full shrink-0">
-            <img
-              src={banner2}
-              alt=""
-              aria-hidden="true"
-              className="h-[140px] w-full object-cover"
-              draggable="false"
-            />
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Dot indicator — pill overlap ke bawah banner */}
-      <div className="relative flex justify-center" style={{ marginTop: '-13px' }}>
-        <div className="relative z-10 flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 shadow-sm">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => goTo(i)}
-              className={`rounded-full transition-all duration-300 h-[6px] ${
-                i === current ? 'w-4 bg-[#2D94DA]' : 'w-[6px] bg-[#2D94DA]/30'
-              }`}
-              aria-label={`Slide ${i + 1}`}
-            />
-          ))}
-        </div>
+      {/* Dot indicator — absolute bottom, full Tailwind, no inline style */}
+      <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => goTo(i)}
+            aria-label={`Show slide ${i + 1}`}
+            aria-current={current === i}
+            className={`h-1.5 rounded-full border-0 p-0 cursor-pointer transition-all duration-300 ${
+              i === current ? "w-4 bg-white" : "w-1.5 bg-white/50"
+            }`}
+          />
+        ))}
       </div>
     </div>
-  )
+  );
 }
 
-/** Emoji hubungan penjemput */
-function relationshipEmoji(relationship = "") {
-  const r = relationship.toLowerCase();
-  if (r.includes("ayah") || r.includes("bapak") || r.includes("father"))
-    return "👨";
-  if (r.includes("ibu") || r.includes("mother")) return "👩";
-  if (r.includes("kakek") || r.includes("grandfather")) return "👴";
-  if (r.includes("nenek") || r.includes("grandmother")) return "👵";
-  if (r.includes("supir") || r.includes("driver") || r.includes("jemput"))
-    return "🚗";
-  return "🧑";
+/* ─────────────────────────────────────────────────────────────
+   QR PLACEHOLDER
+───────────────────────────────────────────────────────────── */
+function QrPlaceholder({ size = 44 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 44 44" fill="none" aria-hidden="true">
+      <rect x="3" y="3" width="16" height="16" rx="2" fill="#111827" />
+      <rect x="6" y="6" width="10" height="10" rx="1" fill="white" />
+      <rect x="8" y="8" width="6" height="6" fill="#111827" />
+      <rect x="25" y="3" width="16" height="16" rx="2" fill="#111827" />
+      <rect x="28" y="6" width="10" height="10" rx="1" fill="white" />
+      <rect x="30" y="8" width="6" height="6" fill="#111827" />
+      <rect x="3" y="25" width="16" height="16" rx="2" fill="#111827" />
+      <rect x="6" y="28" width="10" height="10" rx="1" fill="white" />
+      <rect x="8" y="30" width="6" height="6" fill="#111827" />
+      <rect x="25" y="25" width="4" height="4" fill="#111827" />
+      <rect x="31" y="25" width="4" height="4" fill="#111827" />
+      <rect x="25" y="31" width="4" height="4" fill="#111827" />
+      <rect x="31" y="31" width="4" height="4" fill="#111827" />
+      <rect x="37" y="25" width="4" height="4" fill="#111827" />
+      <rect x="37" y="31" width="4" height="4" fill="#111827" />
+      <rect x="25" y="37" width="4" height="4" fill="#111827" />
+      <rect x="31" y="37" width="4" height="4" fill="#111827" />
+    </svg>
+  );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   CHILD AVATAR
+───────────────────────────────────────────────────────────── */
+function ChildAvatar({ child, className }) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E6F2FF] ${className}`}
+    >
+      <img
+        src={child?.gender === "female" ? girlVector : boyVector}
+        alt=""
+        className="h-full w-full object-contain"
+        draggable="false"
+      />
+    </span>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════
+   PAGE
+═════════════════════════════════════════════════════════════ */
 export default function OrtuDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { children, activeChild } = useOrtuChildren();
   const user = getUser();
 
   const currentChild = activeChild ?? children[0];
-  const agendaRef = useRef(null);
+  const today = new Date();
+  const pad2 = (n) => String(n).padStart(2, "0");
 
+  /* ── Queries ── */
   const { data: pickupsData } = useQuery({
     queryKey: ["ortu", "pickups", currentChild?.id],
     queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/pickups`),
     enabled: !!currentChild,
   });
-  const activePickups = (pickupsData?.pickups ?? []).filter(
-    (p) => p.status === "active",
-  );
+  const activePickups = (pickupsData?.pickups ?? []).filter((p) => p.status === "active");
 
-  const today = new Date();
-  const pad2 = (n) => String(n).padStart(2, "0");
   const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
-  const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const ymCurrent = ymOf(today);
-  const ymPrev = ymOf(prevMonthDate);
+  const ymPrev = ymOf(new Date(today.getFullYear(), today.getMonth() - 1, 1));
 
   const { data: attCurrent } = useQuery({
     queryKey: ["ortu", "attendance", currentChild?.id, ymCurrent],
@@ -182,19 +177,10 @@ export default function OrtuDashboard() {
     enabled: !!currentChild,
   });
   const attendanceByDate = new Map(
-    [...(attPrev?.attendances ?? []), ...(attCurrent?.attendances ?? [])].map((row) => [
-      row.date.slice(0, 10),
-      row,
-    ]),
+    [...(attPrev?.attendances ?? []), ...(attCurrent?.attendances ?? [])].map(
+      (row) => [row.date.slice(0, 10), row],
+    ),
   );
-
-  const { data: invoicesData } = useQuery({
-    queryKey: ["ortu", "invoices", currentChild?.id, "all"],
-    queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/invoices`),
-    enabled: !!currentChild,
-  });
-  const allInvoices = invoicesData?.invoices ?? [];
-  const unpaidInvoices = allInvoices.filter((i) => ["belum_bayar", "terlambat"].includes(i.status));
 
   const { data: calendarData } = useQuery({
     queryKey: ["ortu", "calendar", "upcoming"],
@@ -204,13 +190,8 @@ export default function OrtuDashboard() {
 
   if (children.length === 0) return null;
 
-  function pickChild(childId) {
-    setIsDropdownOpen(false);
-    if (childId === null) return;
-    setActiveChildId(childId);
-  }
-
-  // Weekstrip 7 hari terakhir (berjalan, bukan mock) — dari data absensi asli.
+  /* ── Weekstrip ── */
+  const dayNames = weekdaysShort();
   const weekDays = Array.from({ length: 7 }, (_, idx) => {
     const d = new Date(today);
     d.setDate(d.getDate() - (6 - idx));
@@ -218,390 +199,416 @@ export default function OrtuDashboard() {
     const record = attendanceByDate.get(key);
     return {
       key,
-      name: weekdaysShort()[d.getDay()],
+      name: dayNames[d.getDay()],
       date: pad2(d.getDate()),
       status: record?.status ?? null,
       attended: record?.status === "hadir",
-      active: idx === 6,
+      isToday: idx === 6,
     };
   });
 
+  /* ── Status anak hari ini ── */
+  const todayKey = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+  const attToday = attendanceByDate.get(todayKey);
+  let statusLabel = t("ortu.statusNotRecorded");
+  let statusDot = "bg-[#9CA3AF]";
+  if (currentChild?.picked_up_at) {
+    statusLabel = t("ortu.statusPickedUp");         statusDot = "bg-[#22C55E]";
+  } else if (attToday?.status === "hadir") {
+    statusLabel = t("ortu.statusActiveAtSchool");   statusDot = "bg-[#22C55E]";
+  } else if (["izin", "sakit"].includes(attToday?.status)) {
+    statusLabel = t("ortu.statusOnLeave");          statusDot = "bg-[#FB923C]";
+  } else if (attToday?.status === "alpa") {
+    statusLabel = t("ortu.statusAbsent");           statusDot = "bg-[#EF4444]";
+  }
+
+  const firstName = (user?.name ?? "").split(" ")[0];
+  const initials = (user?.name ?? "U")
+    .split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  const quickActions = [
+    {
+      key: "attendance",
+      label: t("ortu.actionAttendance"),
+      bg: "#3FA3EB",
+      iconColor: "text-[#0F457F]",
+      Icon: ClipboardCheck,
+      onClick: () => navigate("/ortu/attendance"),
+    },
+    {
+      key: "leave",
+      label: t("studentLeave.dashboardCta"),
+      bg: "#FE9A3B",
+      iconColor: "text-[#78350F]",
+      Icon: Stethoscope,
+      onClick: () => navigate("/ortu/leave-requests"),
+    },
+    {
+      key: "agenda",
+      label: "Agenda",
+      bg: "#A5C9FF",
+      iconColor: "text-[#1D4ED8]",
+      Icon: CalendarDays,
+      onClick: () =>
+        document
+          .getElementById("ortu-agenda-card")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    },
+  ];
+
   return (
     <ResponsiveShell headerVariant="none" fullBleed showSearch={false}>
-      {/* 
-        MAIN CANVAS: Pastel Gradient Background exactly matching Figma:
-        linear-gradient(150deg, #CAE6F6 0%, #F6E3F2 50%, #DDF0F4 100%)
+      {/*
+        FIX: Hapus min-h-screen — penyebab ruang kosong gradient setelah konten habis.
+        Gunakan min-h-full agar wrapper hanya setinggi kontennya.
+        overflow-x-hidden tetap di sini mencegah horizontal scroll dari track slideshow.
+        Background F3F4F6 di bawah akan diisi oleh MobileAppShell bg-bg-page yg sama warnanya.
       */}
-      <div className="relative flex w-full flex-col items-center bg-gradient-to-br from-[#CAE6F6] via-[#F6E3F2] to-[#DDF0F4] overflow-x-hidden">
-        {/* 1. HERO SECTION — sticky, collapses on scroll */}
-        <div
-          className={`sticky top-0 z-50 w-full shrink-0 transition-all duration-300 ease-in-out ${
-            scrolled ? 'h-[56px]' : 'h-[148px]'
-          }`}
-        >          {/* Blue header */}
-          <div
-            className={`absolute top-0 left-0 right-0 rounded-b-[36px] px-5 transition-all duration-300 ease-in-out overflow-hidden ${
-              scrolled
-                ? 'h-[56px] pt-[calc(env(safe-area-inset-top)+6px)]'
-                : 'h-[104px] pt-[calc(env(safe-area-inset-top)+10px)]'
-            }`}
-            style={{ background: 'linear-gradient(to right, #35AEFC 0%, #007BFF 50%, #003F8A 100%)', boxShadow: '0 4px 16px rgba(0,63,138,0.35)' }}
-          >
-            {/* Layer circles dekorasi */}
-            <div className="pointer-events-none absolute -left-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.18)' }} />
-            <div className="pointer-events-none absolute -left-4 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
-            {scrolled ? (
-              /* ── Collapsed: satu baris compact ── */
-              <div className="flex w-full items-center justify-between h-full pb-1.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E6F2FF] border border-[#66ADFF] text-sm">
-                    👨‍💼
-                  </div>
-                  <span className="text-[13px] font-bold text-white leading-tight">
-                    {user?.name ? `Hi, ${user.name.split(' ')[0]}` : 'Hi!'}
-                  </span>
-                </div>
-                <NotificationBell variant="hero" />
-              </div>
-            ) : (
-              /* ── Expanded: full greeting ── */
-              <div className="flex w-full items-center justify-between">
-                <div className="flex items-center gap-2.5 pt-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E6F2FF] border-2 border-[#66ADFF] text-lg shadow-md">
-                    👨‍💼
-                  </div>
-                  <div className="flex flex-col text-left">
-                    <span className="text-[11px] font-medium text-white/80">
-                      Selamat Datang
-                    </span>
-                    <h1 className="text-[15px] font-bold text-white leading-tight">
-                      {user?.name ? `Hi, ${user.name}` : "Hi, Bapak Adi"}
-                    </h1>
-                  </div>
-                </div>
-                <NotificationBell variant="hero" className="mt-2" />
-              </div>
-            )}
-          </div>
+      <div
+        className="w-full overflow-x-hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,126,254,1) 0%, rgba(242,237,237,1) 27%, #F3F4F6 100%)",
+        }}
+      >
+        {/* Safe-area top */}
+        <div style={{ height: "max(14px, env(safe-area-inset-top))" }} />
 
-          {/* Floating Pill — hanya tampil saat expanded */}
-          {!scrolled && (
-          <div className="absolute bottom-0 left-4 right-4 z-20">
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex w-full h-20 items-center justify-between rounded-[20px] bg-white px-4 shadow-[0_8px_24px_rgba(12,74,64,0.12)] border border-[#B0E0E6]/50 cursor-pointer transition-transform active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E6F2FF] border border-[#B0E0E6] overflow-hidden">
-                  <img
-                    src={currentChild?.gender === "female" ? girlVector : boyVector}
-                    alt=""
-                    className="h-8 w-8 object-contain"
-                    draggable="false"
-                  />
-                </div>
-                <div className="flex flex-col text-left min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-bold text-[#007BFF]">
-                      {currentChild?.name || "Pilih Siswa"}
-                    </span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#007BFF] shrink-0" />
-                  </div>
-                  <span className="truncate text-[11px] text-[#6C8EBF]">
-                    {currentChild?.classroom?.name
-                      ? `${currentChild.classroom.name} • `
-                      : ""}
-                    NIS {currentChild?.nis || "-"}
-                  </span>
-                </div>
-              </div>
-              <ChevronDown
-                size={18}
-                className={`text-gray-400 shrink-0 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <>
-                <button
-                  type="button"
-                  aria-label={t("common.close")}
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="fixed inset-0 z-40 cursor-default"
-                />
-                <div className="absolute top-full left-0 right-0 z-50 mt-2 rounded-2xl border border-border bg-white p-2 shadow-[0_16px_36px_rgba(0,0,0,0.18)]">
-                  {children.map((c) => {
-                    const isSelected = currentChild?.id === c.id;
-                    return (
-                      <div
-                        key={c.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => pickChild(c.id)}
-                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl p-2.5 transition-colors ${
-                          isSelected
-                            ? "bg-primary-300/15 text-[#007BFF]"
-                            : "hover:bg-gray-50 text-gray-800"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E6F2FF] overflow-hidden">
-                            <img
-                              src={c.gender === "female" ? girlVector : boyVector}
-                              alt=""
-                              className="h-7 w-7 object-contain"
-                              draggable="false"
-                            />
-                          </span>
-                          <div className="flex flex-col text-left">
-                            <span className="text-sm font-bold">{c.name}</span>
-                            <span className="text-xs text-gray-500">
-                              {c.classroom?.name || "Siswa"}
-                            </span>
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <Check size={16} className="text-[#007BFF]" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-          )}
-        </div>
-        <div
-          id="ortu-scroll-container"
-          className="flex w-full flex-col items-center gap-4 px-4 mt-4 overflow-y-auto pb-24"
-          style={{ height: `calc(100vh - ${scrolled ? 56 : 148}px)` }}
-          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 40)}
-        >
-          {/* 2. QUICK ACTIONS (3 CIRCULAR WHITE ICONS EXACT TO FIGMA) */}
-          <div className="flex justify-center items-center gap-7 w-full mt-2">
-            {/* Absensi */}
-            <div
-              onClick={() => navigate("/ortu/attendance")}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group"
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(12,74,64,0.06)] transition-transform group-hover:scale-105 active:scale-95 text-[#007BFF]">
-                <ClipboardCheck size={28} />
-              </div>
-              <span className="text-xs font-medium text-gray-700">Absensi</span>
+        {/* ══════════════════════════════
+            PROFILE HEADER
+        ══════════════════════════════ */}
+        <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            {/* Avatar inisial */}
+            <div className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full bg-white/70 font-heading text-lg font-bold text-[#0F457F] ring-1 ring-white/80">
+              {initials}
             </div>
 
-            {/* Izin Sakit */}
-            <div
-              onClick={() => navigate("/ortu/leave-requests")}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group"
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(12,74,64,0.06)] transition-transform group-hover:scale-105 active:scale-95 text-[#007BFF]">
-                <Stethoscope size={28} />
-              </div>
-              <span className="text-xs font-medium text-gray-700">
-                {t("studentLeave.dashboardCta")}
-              </span>
-            </div>
+            <div className="min-w-0 flex-1">
+              {/* FIX: truncate pada nama mencegah overflow di nama panjang */}
+              <h1 className="truncate font-heading text-[18px] font-bold leading-tight text-[#111827]">
+                {t("ortu.hello", { name: firstName })}
+              </h1>
 
-            {/* Agenda — scroll ke kartu Agenda Mendatang, bukan navigasi */}
-            <div
-              onClick={() => agendaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group"
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(12,74,64,0.06)] transition-transform group-hover:scale-105 active:scale-95 text-[#007BFF]">
-                <CalendarDays size={28} />
-              </div>
-              <span className="text-xs font-medium text-gray-700">Agenda</span>
-            </div>
-          </div>
-
-          {/* 2.5. BANNER SLIDESHOW */}
-          <BannerSlideshow navigate={navigate} />
-
-          {/* 3. WEEKSTRIP — 7 hari, hari aktif pill indigo */}
-          <div className="w-full bg-white rounded-[20px] px-4 py-3 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between gap-1">
-              {weekDays.map((day, idx) => {
-                const dotColor = day.attended
-                  ? 'bg-emerald-400'
-                  : day.status === 'izin' || day.status === 'sakit'
-                    ? 'bg-orange-400'
-                    : day.status === 'alpa'
-                      ? 'bg-red-400'
-                      : 'bg-gray-300';
-                return (
-                  <div
-                    key={idx}
-                    className={`flex flex-1 flex-col items-center gap-1 py-2 rounded-[14px] transition-all ${
-                      day.active
-                        ? 'bg-[#5B4FCF] shadow-md'
-                        : ''
-                    }`}
+              {/* Child switcher */}
+              {children.length > 1 ? (
+                <div className="relative mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen((v) => !v)}
+                    aria-haspopup="listbox"
+                    aria-expanded={dropdownOpen}
+                    className="flex h-6 max-w-full items-center gap-1.5 rounded-[10px] border border-gray-200 bg-white py-0.5 pl-1 pr-2.5 shadow-sm active:scale-[0.98]"
                   >
-                    <span className={`text-[10px] font-semibold ${day.active ? 'text-white/80' : 'text-gray-400'}`}>
-                      {day.name}
+                    <ChildAvatar child={currentChild} className="h-[19px] w-[22px]" />
+                    {/* FIX: truncate + max-w agar tidak overflow pill */}
+                    <span className="max-w-[160px] truncate text-[9px] font-semibold text-[#374151]">
+                      {currentChild?.name}
+                      {currentChild?.classroom?.name ? ` (${currentChild.classroom.name})` : ""}
                     </span>
-                    <span className={`text-[15px] font-bold leading-tight ${day.active ? 'text-white' : 'text-gray-800'}`}>
-                      {day.date}
-                    </span>
-                    <span className={`h-[7px] w-[7px] rounded-full ${dotColor}`} />
-                  </div>
-                );
-              })}
-              {/* chevron kanan */}
-              <div className="flex items-center pl-1">
-                <ChevronRight size={16} className="text-gray-400" />
-              </div>
-            </div>
-          </div>
+                    <ChevronDown
+                      size={10}
+                      className={`shrink-0 text-[#6B7280] transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
 
-          {/* 4. CHILD CARD — orange, boy vector menonjol di kiri, status, NIS, 2 tombol */}
-          {/* pt-5 memberi ruang untuk vector yang overflow ke atas via negative marginTop */}
-          <div className="w-full pt-5 -mt-1 relative">
-            <div
-              className="w-full rounded-[24px] relative overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, #FFB800 0%, #FF9500 100%)', minHeight: 140 }}
-            >
-              {/* Dekorasi lingkaran */}
-              <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10" />
-              <div className="pointer-events-none absolute right-4 top-10 h-16 w-16 rounded-full bg-white/10" />
-
-              <div className="flex items-end">
-                {/* Avatar anak — keluar dari card ke atas via negative margin-top */}
-                <div className="relative shrink-0" style={{ width: 118 }}>
-                  <img
-                    src={currentChild?.gender === 'female' ? girlVector : boyVector}
-                    alt=""
-                    className="object-contain drop-shadow-xl"
-                    style={{ width: 118, height: 148, marginTop: -32, display: 'block' }}
-                    draggable="false"
-                  />
+                  {dropdownOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label={t("common.close")}
+                        onClick={() => setDropdownOpen(false)}
+                        className="fixed inset-0 z-40 cursor-default"
+                      />
+                      <ul
+                        role="listbox"
+                        className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-1 shadow-xl"
+                      >
+                        {children.map((c) => {
+                          const isSelected = currentChild?.id === c.id;
+                          return (
+                            <li key={c.id} aria-selected={isSelected}>
+                              <button
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                  setDropdownOpen(false);
+                                  setActiveChildId(c.id);
+                                }}
+                                className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition-colors ${
+                                  isSelected ? "bg-[#037EFE]/10" : "hover:bg-gray-50"
+                                }`}
+                              >
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <ChildAvatar child={c} className="h-[22px] w-[22px]" />
+                                  <span className="truncate text-[11px] font-semibold text-[#374151]">
+                                    {c.name}
+                                    {c.classroom?.name ? ` (${c.classroom.name})` : ""}
+                                  </span>
+                                </span>
+                                {isSelected && <Check size={13} className="shrink-0 text-[#037EFE]" />}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  )}
                 </div>
-
-                {/* Info kanan */}
-                <div className="flex flex-1 flex-col gap-2.5 min-w-0 py-4 pr-4 pl-2">
-                  {/* Status pill */}
-                  <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#1A1A1A] px-3 py-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
-                    <span className="text-[11px] font-bold text-white whitespace-nowrap">
-                      {currentChild?.picked_up_at
-                        ? 'Sudah Dijemput'
-                        : ["izin","sakit"].includes(currentChild?.today_status)
-                          ? 'Sedang Izin'
-                          : 'Sedang Aktif di Sekolah'}
-                    </span>
-                    <ChevronRight size={12} className="text-white/60" />
-                  </div>
-
-                  {/* NIS */}
-                  <span className="text-[14px] font-semibold text-white/90">
-                    NIS: {currentChild?.nis ?? '-'}
+              ) : (
+                <div className="mt-1 flex h-7 max-w-full items-center gap-1.5 rounded-[14px] border border-gray-200 bg-white py-0.5 pl-1 pr-2.5 shadow-sm">
+                  <ChildAvatar child={currentChild} className="h-[22px] w-[22px]" />
+                  <span className="max-w-[160px] truncate text-[9px] font-semibold text-[#374151]">
+                    {currentChild?.name}
+                    {currentChild?.classroom?.name ? ` (${currentChild.classroom.name})` : ""}
                   </span>
-
-                  {/* 2 tombol aksi */}
-                  <div className="flex gap-2 w-full">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/ortu/pickups')}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12px] font-bold text-white active:opacity-80"
-                      style={{ background: '#7C5FF5' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                      Jemput Anak
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/ortu/invoices')}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12px] font-bold text-gray-800 bg-white active:opacity-80"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                      Bayar SPP
-                    </button>
-                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* 5. BOTTOM ROW — QR card (kiri) + Agenda (kanan) */}
-          <div className="flex w-full gap-3 items-stretch">
+          <NotificationBell variant="dot" />
+        </div>
 
-            {/* QR Penjemput — biru muda */}
+        {/* ══════════════════════════════
+            DASHBOARD CONTENT
+            FIX: gap-[11px] sesuai Figma
+            FIX: pb-24 cukup untuk tab bar ~56px + safe area
+        ══════════════════════════════ */}
+        <div className="flex flex-col gap-[11px] px-4 pb-[68px] pt-[11px]">
+
+          {/* ── 1. QUICK ACTIONS ── */}
+          <div className="flex h-[86px] items-center justify-center">
+            <div className="flex items-center gap-[26px]">
+              {quickActions.map(({ key, label, bg, iconColor, Icon, onClick }) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-label={label}
+                  onClick={onClick}
+                  className="flex w-20 flex-col items-center gap-0 border-0 bg-transparent p-0 cursor-pointer"
+                >
+                  <span
+                    className="flex h-[66px] w-[66px] items-center justify-center rounded-full shadow-[0_4px_4px_rgba(0,0,0,0.25)] transition-transform active:scale-95"
+                    style={{ background: bg }}
+                  >
+                    <Icon size={28} strokeWidth={2} className={iconColor} />
+                  </span>
+                  <span className="mt-1.5 text-center font-heading text-[12px] font-bold leading-tight text-[#1F2937]">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── 2. BANNER SLIDESHOW ── */}
+          <BannerSlideshow />
+
+          {/* ── 3. WEEK CALENDAR STRIP ──
+              FIX: flex + overflow-hidden pada wrapper mencegah overflow
+              FIX: tiap hari flex-1 min-w-0 agar menyesuaikan lebar container
+          ── */}
+          <div className="flex h-[76px] items-center overflow-hidden rounded-[18px] bg-white shadow-[0px_4px_5px_-3px_rgba(0,0,0,0.25)]">
+            {weekDays.map((day) => (
+              <div
+                key={day.key}
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-[3px] ${
+                  day.isToday
+                    ? "mx-0.5 h-14 rounded-[14px] bg-[#000006]"
+                    : "h-[54px]"
+                }`}
+              >
+                <span
+                  className={`text-[8.5px] font-medium leading-tight whitespace-nowrap ${
+                    day.isToday ? "text-white" : "text-[#6B7280]"
+                  }`}
+                >
+                  {day.name}
+                </span>
+                <span
+                  className={`font-bold leading-tight whitespace-nowrap ${
+                    day.isToday ? "text-[13px] text-white" : "text-[12.5px] text-[#111827]"
+                  }`}
+                >
+                  {day.date}
+                </span>
+                <span
+                  className={`h-1 w-1 rounded-sm ${
+                    day.attended
+                      ? "bg-green-500"
+                      : day.status === "izin" || day.status === "sakit"
+                        ? "bg-orange-400"
+                        : day.status === "alpa"
+                          ? "bg-red-500"
+                          : "bg-gray-300"
+                  }`}
+                />
+              </div>
+            ))}
+            {/* Chevron navigasi */}
             <button
               type="button"
-              onClick={() => navigate('/ortu/pickups')}
-              className="flex flex-1 flex-col rounded-[20px] p-3.5 text-left"
-              style={{ background: '#D6E4FF' }}
+              onClick={() => navigate("/ortu/attendance")}
+              aria-label={t("ortu.attendanceHistoryTitle")}
+              className="flex shrink-0 items-center justify-center px-2 py-2 border-0 bg-transparent cursor-pointer"
             >
-              {/* QR box */}
-              <div className="mb-2 flex h-[64px] w-[64px] items-center justify-center rounded-[14px] bg-white shadow-sm">
-                <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-                  {/* QR pattern sederhana */}
-                  <rect x="3" y="3" width="16" height="16" rx="2" fill="#111"/>
-                  <rect x="6" y="6" width="10" height="10" rx="1" fill="white"/>
-                  <rect x="8" y="8" width="6" height="6" fill="#111"/>
-                  <rect x="25" y="3" width="16" height="16" rx="2" fill="#111"/>
-                  <rect x="28" y="6" width="10" height="10" rx="1" fill="white"/>
-                  <rect x="30" y="8" width="6" height="6" fill="#111"/>
-                  <rect x="3" y="25" width="16" height="16" rx="2" fill="#111"/>
-                  <rect x="6" y="28" width="10" height="10" rx="1" fill="white"/>
-                  <rect x="8" y="30" width="6" height="6" fill="#111"/>
-                  <rect x="25" y="25" width="4" height="4" fill="#111"/>
-                  <rect x="31" y="25" width="4" height="4" fill="#111"/>
-                  <rect x="25" y="31" width="4" height="4" fill="#111"/>
-                  <rect x="31" y="31" width="4" height="4" fill="#111"/>
-                  <rect x="37" y="25" width="4" height="4" fill="#111"/>
-                  <rect x="37" y="31" width="4" height="4" fill="#111"/>
-                  <rect x="25" y="37" width="4" height="4" fill="#111"/>
-                  <rect x="31" y="37" width="4" height="4" fill="#111"/>
-                </svg>
-              </div>
-              <div className="flex items-start justify-between w-full">
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-[#4A6FA5]">Penjemput Sah:</span>
-                  <span className="text-[13px] font-bold text-[#1A2B4A] leading-tight">
-                    {activePickups[0]?.name ?? 'Belum ada'}
+              <ChevronRight size={12} className="text-[#9CA3AF]" />
+            </button>
+          </div>
+
+          {/* ── 4. CHILD STATUS CARD ──
+              FIX: Hapus absolute positioning fragile, pakai flex row.
+              Mascot kiri — flex row dengan lebar fixed, konten kanan flex-1.
+              FIX: tombol Jemput/Bayar pakai flex-1 bukan w-28 hardcoded.
+          ── */}
+          <div
+            className="flex w-full items-stretch overflow-hidden rounded-[20px] shadow-[0px_4px_5.2px_-3px_rgba(0,0,0,0.40)]"
+            style={{
+              background: "linear-gradient(144deg, rgba(255,174,66,1) 0%, rgba(255,247,239,1) 100%)",
+              minHeight: "124px",
+            }}
+          >
+            {/* Mascot — lebar fixed 110px */}
+            <div className="relative flex w-[110px] shrink-0 items-end justify-center overflow-hidden">
+              <div className="absolute inset-2 rounded-lg bg-[#F7D0A2]" />
+              <img
+                src={currentChild?.gender === "female" ? girlVector : boyVector}
+                alt=""
+                className="relative z-10 h-[108px] w-[96px] object-contain"
+                draggable="false"
+              />
+            </div>
+
+            {/* Konten kanan — flex-1, padding konsisten */}
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pl-1 pr-3">
+              {/* Status + chevron */}
+              <div className="flex items-center justify-between gap-1">
+                <div className="inline-flex min-w-0 shrink items-center gap-1.5 rounded-[11px] bg-[#111827] px-2 py-0.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-[3px] ${statusDot}`} />
+                  {/* FIX: truncate agar status panjang tidak overflow */}
+                  <span className="truncate text-[9.5px] font-bold text-white">
+                    {statusLabel}
                   </span>
                 </div>
-                <ChevronRight size={14} className="text-[#4A6FA5] mt-0.5 shrink-0" />
-              </div>
-              <span className="mt-1 text-[10px] text-[#4A6FA5] leading-snug">
-                Tunjukkan QR code ini saat penjemputan
-              </span>
-            </button>
-
-            {/* Agenda Mendatang */}
-            <div ref={agendaRef} className="flex flex-1 flex-col bg-white rounded-[20px] p-3.5 border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[13px] font-bold text-[#111827]">Agenda Mendatang</span>
                 <button
                   type="button"
-                  onClick={() => navigate('/ortu/attendance')}
+                  onClick={() => navigate("/ortu/profile-anak")}
+                  aria-label={t("ortu.childProfileTitle")}
+                  className="shrink-0 border-0 bg-transparent cursor-pointer"
                 >
-                  <ChevronRight size={15} className="text-gray-400" />
+                  <ChevronRight size={12} className="text-white" />
                 </button>
               </div>
 
+              {/* NIS */}
+              <span className="text-[11.5px] font-semibold text-[#111827]">
+                NIS: {currentChild?.nis ?? "-"}
+              </span>
+
+              {/* FIX: flex row dengan flex-1 per tombol — tidak hardcode w-28 */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/ortu/pickups")}
+                  className="flex h-8 flex-1 items-center justify-center gap-[5px] rounded-[14px] bg-[#679DD6] px-2 text-[10px] font-bold text-white border-0 cursor-pointer active:opacity-80"
+                >
+                  <Users size={13} className="shrink-0" />
+                  <span className="truncate">{t("ortu.pickupChildBtn")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/ortu/invoices")}
+                  className="flex h-8 flex-1 items-center justify-center gap-[5px] rounded-[14px] bg-white px-2 text-[10px] font-bold text-[#111827] border-0 cursor-pointer active:opacity-80"
+                >
+                  <CreditCard size={13} className="shrink-0" />
+                  <span className="truncate">{t("ortu.paySppBtn")}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 5. QR PENJEMPUT + AGENDA MENDATANG ──
+              FIX: Hapus absolute positioning dengan hardcoded left-[184px].
+              Pakai flex row dengan gap — responsive di semua lebar.
+              FIX: keduanya items-stretch agar tinggi sama.
+          ── */}
+          <div className="flex items-stretch gap-3">
+
+            {/* QR Penjemput — lebar 47% */}
+            <button
+              type="button"
+              onClick={() => navigate("/ortu/pickups")}
+              className="flex w-[47%] shrink-0 flex-col rounded-[18px] p-3 text-left border-0 cursor-pointer active:opacity-90"
+              style={{ background: "#A9CBFE" }}
+            >
+              {/* QR box */}
+              <div className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-[10px] bg-white shadow-sm">
+                {activePickups[0]?.qr_token ? (
+                  <QRCodeSVG
+                    value={activePickups[0].qr_token}
+                    size={44}
+                    bgColor="#FFFFFF"
+                    fgColor="#111827"
+                    level="M"
+                  />
+                ) : (
+                  <QrPlaceholder size={44} />
+                )}
+              </div>
+
+              <div className="mt-2 min-w-0">
+                <p className="text-[9px] leading-tight text-[#334155]">
+                  {t("ortu.authorizedPickupsShort")}
+                </p>
+                {/* FIX: truncate pada nama penjemput */}
+                <p className="truncate text-[11px] font-bold text-[#0F172A]">
+                  {activePickups[0]?.name ?? t("ortu.noPickupYet")}
+                </p>
+                <p className="mt-0.5 text-[8.5px] leading-[11px] text-[#334155]">
+                  {t("ortu.qrHint")}
+                </p>
+              </div>
+            </button>
+
+            {/* Agenda Mendatang — flex-1 mengisi sisa lebar */}
+            <div
+              id="ortu-agenda-card"
+              className="flex min-w-0 flex-1 flex-col rounded-[18px] bg-white p-3 shadow-sm"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <h2 className="font-heading text-[10.5px] font-bold leading-tight text-[#111827]">
+                  {t("ortu.agendaCardTitle")}
+                </h2>
+                <ChevronRight size={10} className="shrink-0 text-[#9CA3AF]" />
+              </div>
+
               {upcomingAgenda.length === 0 ? (
-                <p className="text-[11px] text-gray-400 text-center py-3">{t('ortu.agendaEmpty')}</p>
+                <p className="mt-2 text-center text-[9px] text-[#9CA3AF]">
+                  {t("ortu.agendaEmpty")}
+                </p>
               ) : (
-                <div className="flex flex-col gap-2.5">
-                  {upcomingAgenda.slice(0, 3).map((item) => (
-                    <div key={item.id} className="flex items-start gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EDE9FF]">
-                        <CalendarHeart size={14} className="text-[#7C5FF5]" />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-semibold text-[#111827] leading-tight">
-                          {formatDate(item.date, { withYear: false })}
+                <div className="mt-2 flex flex-col gap-2">
+                  {upcomingAgenda.slice(0, 2).map((item) => {
+                    const [y, m, d] = item.date.slice(0, 10).split("-").map(Number);
+                    return (
+                      <div key={item.id} className="flex items-start gap-2">
+                        <span className="mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#EFF6FF]">
+                          <CalendarHeart size={12} className="text-[#2563EB]" />
                         </span>
-                        <span className="text-[10px] text-gray-500 truncate">{item.label}</span>
+                        <div className="min-w-0 flex flex-col gap-px">
+                          <span className="text-[9px] font-bold leading-tight text-[#111827]">
+                            {weekdayLong(new Date(y, m - 1, d))},{" "}
+                            {formatDate(item.date, { withYear: false })}
+                          </span>
+                          {/* FIX: truncate pada label agenda panjang */}
+                          <span className="truncate text-[8px] leading-tight text-[#6B7280]">
+                            {item.label}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
