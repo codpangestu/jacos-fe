@@ -13,6 +13,10 @@ export const STATUS_TONE = {
   approved: 'success',
   rejected: 'danger',
   revision_requested: 'accent',
+  // Tiket pengaduan (complaints)
+  open: 'accent',
+  in_progress: 'primary',
+  resolved: 'success',
   qr: 'primary',
   manual: 'navy',
   active: 'success',

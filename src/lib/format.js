@@ -46,6 +46,17 @@ export function weekdaysShort() {
   return WEEKDAYS_SHORT[lang()]
 }
 
+const WEEKDAYS_LONG = {
+  id: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+}
+
+export function weekdayLong(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return ''
+  return WEEKDAYS_LONG[lang()][d.getDay()]
+}
+
 function pad2(n) {
   return String(n).padStart(2, '0')
 }

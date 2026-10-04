@@ -8,8 +8,14 @@ import useOrtuChildren from '../hooks/useOrtuChildren'
  * /consent/child kalau ada anak tanpa consent aktif, lalu (kecuali
  * requireChildSelection=false) pastikan ada anak aktif terpilih — kalau >1
  * anak dan belum ada yang aktif, redirect ke child switcher.
+ *
+ * requireConsent=false dipakai halaman yang bukan pemrosesan data anak —
+ * satu-satunya saat ini Pengaduan (lihat ComplaintController: policy-nya
+ * sengaja tidak memakai StudentPolicy/consent, karena consent mengatur
+ * pemrosesan data anak, bukan hak orang tua menyampaikan keluhan). Tanpa itu,
+ * orang tua yang menarik consent jadi terkunci dari fitur pengaduan.
  */
-export default function OrtuGuard({ children, requireChildSelection = true }) {
+export default function OrtuGuard({ children, requireChildSelection = true, requireConsent = true }) {
   const { t } = useTranslation()
   const user = getUser()
 
@@ -26,7 +32,7 @@ export default function OrtuGuard({ children, requireChildSelection = true }) {
     )
   }
 
-  if (needsConsent) return <Navigate to="/consent/child" replace />
+  if (requireConsent && needsConsent) return <Navigate to="/consent/child" replace />
 
   if (requireChildSelection) {
     if (childList.length === 0) {

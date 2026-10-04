@@ -24,29 +24,36 @@ Dokumen ini adalah **turunan scoped-frontend** dari `../context.md` (root). Root
 
 ```
 pages/            — 1 file per layar, dikelompokkan per role: admin/, guru/, ortu/, staff/,
-                    auth/, common/ (Profile, ConsentChild — dipakai lintas-role),
+                    auth/, common/ (Profile, ConsentChild, AnnouncementHistory — lintas-role),
                     pickup/ (PickupVerify, dipakai guru & staff — shared component),
                     self-attendance/ (SelfAttendance, idem), leave/ (LeaveRequests, idem)
 
 layouts/          — 3 file aktif:
-                    DashboardLayout.jsx  — sidebar app shell, Admin/Guru
-                    MobileAppShell.jsx   — shell mobile-first Orang Tua & Staff
-                                           (header putih bersih + bottom tab bar, max-w-480px)
+                    DashboardLayout.jsx  — sidebar app shell, Admin/Guru (sidebar 240px default,
+                                           collapsed → OrganicWaveSidebar 80px)
+                    MobileAppShell.jsx   — shell mobile-first Orang Tua & Staff (max-w-480px,
+                                           bottom tab bar, headerVariant greeting/title/none)
                     ResponsiveShell.jsx  — wrapper role-aware: Ortu/Staff → MobileAppShell,
                                            Admin/Guru → DashboardLayout
 
 components/       — RoleGuard, AuthGuard, OrtuGuard (route guards);
                     NotificationBell + NotificationDrawer; LanguageSwitcher;
+                    OrganicWaveSidebar (rail 80px untuk sidebar ciut);
                     Navbar (Homepage publik saja, bukan dashboard);
-                    dashboard/ (StatCard, ProgressCard, ChartCard, ListCard,
-                                HighlightCard, TableCard, ActivityTimelineCard,
-                                GreetingBanner, QuickActions, AttendanceByClassCard,
-                                FinanceSummaryCard);
-                    ortu/ (ActiveChildBar, ChildOverviewCard);
+                    dashboard/ — legacy: StatCard, ProgressCard, TableCard, HighlightCard,
+                                ListCard (masih dipakai Guru/Staff/Finance);
+                                versi Admin Figma (2026-09-25): CommandHero, ActionTileCard,
+                                NotificationsCard, AttendanceReminderCard, CalendarCard,
+                                ClassStatusCard, GaugeCard, PickupMonitorCard,
+                                AgendaHighlightCard;
+                                orphan (tidak diimpor di mana pun): GreetingBanner, QuickActions,
+                                AttendanceByClassCard, FinanceSummaryCard,
+                                ActivityTimelineCard, ChartCard, ActionCards;
+                    ortu/ (ActiveChildBar, ChildOverviewCard, InvoiceCard);
                     ui/ (DataTable, Drawer, ExportButton, FilterBar, FormField,
-                         Modal, StatusBadge)
+                         Modal, StatusBadge, MobileCardList, StatMiniGrid)
 
-config/           — navigation.js (NAV_MENU_GROUPS sidebar per role),
+config/           — navigation.js (NAV_MENU_GROUPS sidebar per role + NAV_TOP_TABS tab topbar),
                     mobileNav.js (MOBILE_TABS bottom-nav Ortu & Staff)
 
 lib/              — api.js, auth.js, activeChild.js, format.js, statusLabels.js,
@@ -63,7 +70,7 @@ i18n/             — index.js + locales/{id,en}.json
 
 Helper per-role membungkus elemen: `admin()`, `guru()`, `staff()` → `<RoleGuard role="...">`, `authed()` → `<AuthGuard>`, `ortu()` → `<OrtuGuard>`. `OrtuGuard` punya 2 tugas ekstra: redirect ke `/consent/child` kalau ada anak belum consent, dan ke `/ortu/select-child` kalau >1 anak belum ada yang dipilih aktif.
 
-**41 route utama** terdaftar — Homepage publik `/`, auth `/login|/forgot-password|/reset-password`, per-role prefix `/admin/*`, `/guru/*`, `/ortu/*`, `/staff/*`, plus route lintas-role (`/account/profile`, `/consent/child`). Halaman shared (`PickupVerify`, `SelfAttendance`, `LeaveRequests`) di-mount 2x dengan guard beda tapi satu file yang sama.
+**55 route utama** terdaftar (56 entri termasuk `*` → `NotFound`) — Homepage publik `/`, auth `/login|/forgot-password|/reset-password`, per-role prefix `/admin/*`, `/guru/*`, `/ortu/*`, `/staff/*`, plus route lintas-role (`/account/profile`, `/consent/child`). Halaman shared (`PickupVerify`, `SelfAttendance`, `LeaveRequests`) di-mount 2x dengan guard beda tapi satu file yang sama. Empat terakhir bertema pengaduan: `/admin/complaints` + `/admin/complaints/:id` (2026-09-28), lalu `/ortu/complaints` + `/ortu/complaints/:id` (2026-09-30, dipasang `<OrtuGuard requireChildSelection={false} requireConsent={false}>` — lihat bagian Fitur Pengaduan).
 
 ---
 
@@ -93,9 +100,13 @@ Semua di `@theme` block:
 
 **Catatan pengukuran:** kontras harus dihitung terhadap backdrop tempat elemen benar-benar berada, bukan terhadap putih. Kesalahan ini pernah terjadi (ikon chip primary diukur ke putih → dikira 3.30:1, padahal di atas tint chip-nya 2.90:1).
 
-**Sidebar tokens** (dipakai `DashboardLayout`): `bg-sidebar`, `sidebar-text`, `sidebar-text-muted`, `sidebar-border`, `sidebar-active-bg`, `sidebar-active-text`, `sidebar-hover-bg` — di-override di `.dark {}` supaya sidebar flip navy di dark mode (light mode sidebar putih, dark mode sidebar navy).
+**Sidebar tokens** (dipakai `DashboardLayout`): `bg-sidebar`, `sidebar-text`, `sidebar-text-muted`, `sidebar-border`, `sidebar-active-bg`, `sidebar-active-text`, `sidebar-hover-bg` — di-override di `.dark {}` supaya sidebar flip navy di dark mode (light mode sidebar putih, dark mode sidebar navy). Sejak redesain expanded 2026-09-28, nav expanded **tidak lagi** memakai token ini — ia pakai hex literal Figma (lihat bagian Sidebar Expanded). Token tinggal dipakai untuk latar kolom sidebar dan oleh `OrganicWaveSidebar`.
 
 > **Konflik yang belum diputuskan (ditemukan 2026-09-18):** root `context.md` dan `PRODUCT.md` menyatakan sidebar **"selalu navy di kedua tema"**, sedangkan implementasi (dan dokumen ini) menyebut light mode = putih **secara sengaja**. Komentar di `index.css` juga masih menulis "always navy". Salah satu dari keduanya harus diperbaiki — belum diputuskan user.
+>
+> **Catatan 2026-09-28:** nav expanded sekarang **selalu biru** di kedua tema (panel Figma), jadi kontradiksi ini tinggal relevan untuk latar kolom sidebar dan `OrganicWaveSidebar`.
+
+**Warna Figma literal (belum dimigrasi ke token).** Redesain Dashboard Admin (2026-09-25) dan Dashboard Ortu v1.0 memakai hex persis Figma — `#5B61F6` (indigo), `#2082F5` (biru), `#0F1220` (pill gelap), plus gray Tailwind — alih-alih token di atas. Ini keputusan sadar ("warna persis Figma") dan komponennya dikomentari sebagai greppable sampai migrasi token global dijalankan. Konsekuensi kontras yang sudah tercatat di komentar kode: putih di atas `#2082F5` **3,77:1** (AgendaHighlightCard, di bawah AA 4.5:1 untuk teks kecil), cincin gauge `#5B61F6` di dark **2,93:1**, fill bar ClassStatusCard juga <3:1 di dark. Sidebar expanded (2026-09-28) menambah `#2082F5 → #1466CA` (panel), `#0c2b4c` / `#64748b` (header), `#f1f5f9` / `#475569` (tombol collapse) — semuanya literal.
 
 Dark mode berbasis **class** (`@custom-variant dark`), toggle via `useDarkMode.js` (localStorage persist).
 
@@ -106,27 +117,77 @@ Font: **Plus Jakarta Sans** (`font-heading`) + **Inter** (`font-body`) via Googl
 ## Layout System — 2 Shell (PENTING)
 
 ### `DashboardLayout` — Admin & Guru
-- Sidebar kiri persisten (collapsible `lg:w-64` / `lg:w-18`)
-- **Light mode sidebar: putih** dengan teks gelap, active item biru solid + chevron kanan
-- **Dark mode sidebar: navy** `#0C2B4C` dengan teks putih
-- Topbar sticky: judul halaman + subtitle, search bar pill (+ mic icon), theme toggle sun/moon, notif bell, user avatar + nama + role
-- **Theme toggle sun**: saat light mode aktif, ikon Sun punya background putih + shadow + warna amber (`text-accent-500`) — persis referensi Academix
-- Right rail (opsional, 320px) dan sidebar alert card (opsional gradient biru) diisi per-halaman via props
-- Dipakai: semua halaman `/admin/*` dan `/guru/*`
+- Sidebar kiri persisten; **default EXPANDED 256px** (`w-64`). State collapse disimpan di `localStorage.sidebar_collapsed` (bug lama: default-nya rail karena `!== 'false'`, jadi sidebar 256px praktis tidak pernah terlihat).
+- Sidebar **collapsed** → merender **`OrganicWaveSidebar`** (80px): rail ikon dengan bentuk "organic wave" (`#2082F5`, 2 SVG cap + badan ribbon), **satu ikon per grup menu** (item aktif grup itu, atau item pertamanya), tooltip saat hover, item aktif = squircle putih dengan glyph "app grid", settings/logout/avatar di bawah wave. (Versi lama meratakan semua item lalu `slice(0, 8)` sehingga membuang menu penting.)
+- **Expanded (redesain 2026-09-28)**: panel biru gradient `#2082F5 → #1466CA` yang **sama di light maupun dark** (tidak ikut tema), full-bleed dengan lengkung organik di kanan-atas. Angka Figma lengkap + daftar penyimpangan yang disengaja ada di bagian **Sidebar Expanded — Redesign Figma** di bawah.
+- **Topbar (redesign 2026-09-25)**: judul halaman + subtitle **sudah tidak** dirender di sini — dipindah ke `document.title` (`pageSubtitle` sekarang hanya dipakai untuk itu). Isinya sekarang: tab lintas-seksi `NAV_TOP_TABS` per role (Admin/Guru), search box (ikon mic dihapus), pill toggle **Light/Dark** berlabel, link Pengaturan, `LanguageSwitcher variant="figma"`, dan CTA "Pengumuman +" khusus admin. Di bawah `lg`: hamburger.
+- Right rail (opsional, 320px) & sidebar alert card (opsional) masih didukung via props — tapi `rightRail` sekarang **tidak dikirim halaman mana pun** (dashboard Admin lama yang memakainya sudah di-redesain).
+- Dipakai: semua halaman `/admin/*` dan `/guru/*`, dan `ResponsiveShell` untuk role selain Ortu/Staff
 
 ### `MobileAppShell` — Orang Tua & Staff
 - Max-w 480px, ter-center di semua breakpoint (bukan hanya mobile)
-- **Header putih bersih** dengan border bottom tipis — tidak ada gradient
-- Kiri: avatar inisial dengan gradient ring + green dot (online indicator)
-- Tengah: judul halaman
-- Kanan: theme toggle (rounded-full bg-bg-page) + NotificationBell
-- Back button muncul saat `headerVariant="title"` (halaman bukan dashboard)
-- **Bottom tab bar**: 5 tab, tab aktif punya dot indicator kecil di pojok atas kanan icon + background pill `bg-primary-300/12`, tab tengah elevated floating button gradient biru
+- `headerVariant`:
+  - `"greeting"` — header gradient biru literal (`#007BFF → #35AEFC → #B0E0E6`) + layer lingkaran dekoratif, avatar inisial + dot hijau, judul/subjudul putih, toggle tema & bell di lingkaran translucent.
+  - `"title"` — topbar minimalis sticky: back button + judul + subtitle + toggle tema + bell.
+  - `"none"` — tanpa header shell; halaman menyediakan hero sendiri (mis. `OrtuDashboard` yang punya hero biru custom + bell sendiri).
+- `fullBleed` — mematikan padding `<main>` supaya hero halaman bisa nempel ke tepi.
+- **Bottom tab bar**: 5 tab; **tab aktif naik jadi bubble bundar biru 56px** (`-top-8` + ring putih), tab lain ikon + label biasa. Flag `central: true` di `mobileNav.js` **belum dipakai** oleh shell ini.
 - Dipakai via `ResponsiveShell` — semua halaman `/ortu/*` dan `/staff/*`
 
 ### `ResponsiveShell`
 - Wrapper role-aware: cek `user.role`, kalau `orang_tua` atau `staff` render `MobileAppShell`, selain itu `DashboardLayout`
 - Dipakai oleh semua halaman Ortu/Staff + halaman shared (PickupVerify, SelfAttendance, LeaveRequests, Profile, dll.)
+
+---
+
+## Sidebar Expanded (`DashboardLayout`) — Redesign Figma "Left Organic Curve Sidebar" (2026-09-28)
+
+File: `src/layouts/DashboardLayout.jsx`, blok `<aside>` expanded saja. Frame Figma **node 83:768** (file key `FTR1cd10409XotFDmBFy0m`). State collapse tetap `OrganicWaveSidebar` dan **tidak disentuh** — keduanya branch eksklusif (`collapsed ? 'lg:hidden' : …`), jadi terpisah bersih.
+
+**Cara ambil angkanya — catat, ini yang bikin bolak-balik:** `/v1/files/:key/nodes?ids=…` **kena rate limit keras** (`Retry-After` ≈ 205.000 detik), sedangkan `/v1/files/:key` biasa jalan normal; pakai yang terakhir. Bentuk kurva, radius, dan opacity **tidak ada** di response JSON — itu cuma muncul lewat `GET /v1/images/:key?ids=…&format=svg`, yang mengembalikan URL S3 berisi path SVG asli. JSON-nya tetap perlu untuk teks, font, posisi absolut, dan ukuran kotak.
+
+**Struktur (kolom 256px, full-bleed):**
+
+1. **Header `h-[82px]`** (`83:770`) — logo 38×40 di x=20; wordmark "JACOS" **Plus Jakarta Sans 16/700 `#0c2b4c`** (lh 20); subtitle Inter 10.5/400 `#64748b` (lh 13); tombol collapse **32×33** `#F1F5F9` radius 10 berisi `ChevronLeft` (glyph 6×12, stroke `#475569`) di x=202. Blok ini duduk di **atas** panel biru, jadi latarnya tetap ikut tema.
+2. **Panel biru** (`83:777`) — FULL-BLEED, x=0..256 mulai y=82; **bukan** kartu ber-margin. Path aslinya `M0 0 H176 C220.183 0 256 38.7048 256 86.45 V925.015 C256 939.339 245.255 950.95 232 950.95 H0 Z`: sudut kiri siku, lengkung organik kanan-atas dari x=176 ke x=256 setinggi 86, radius kanan-bawah 24×26. Diimplementasikan sebagai `borderTopRightRadius: '80px 86px'` — titik ujungnya identik dengan kurva kubik itu, cuma kontrolnya beda tipis (Figma 38.70 vs 47.75 untuk elips murni). Radius kanan-bawah **sengaja tidak dipakai**: di frame aslinya panel overflow (82+951 > tinggi frame 988) sehingga lengkung itu tidak pernah terlihat, dan di sini panel full-height. Gradient `linear-gradient(162.5deg, #2082F5, #1466CA)`; sudut 162.5° dihitung dari vektor `<linearGradient>` Figma (0,0)→(295.082, 938.664) `userSpaceOnUse`.
+3. **Pill putih** (`83:779`) — 168×40 radius 20 (stadium), di **x=22 rata kiri** (bukan di tengah), teks 23px dari tepi dalam, **PJS 13/700 `#2082f5`**. Isinya **label grup nav yang sedang aktif** (`sidebarSection`), bukan judul halaman — kalau judul halaman, teksnya jadi sama persis dengan item nav aktif di bawahnya. Fallback ke `pageTitle` untuk halaman di luar menu.
+4. **Baris nav** — tinggi **41px**, radius **12.35**, gap **6.5** → pitch **47.5px**, sama dengan Figma. Padding ditaruh di `<nav>` (`pl-[22px] pr-[18px]`), bukan di panel; baris pertama mendarat di **y=179** persis Figma (panel 82 + `pt-8` 32 + pill 40 + `mt-[25px]` 25). Item aktif = `bg-white/[0.18]` — angka 0.18 diambil dari `fill-opacity="0.18"` di SVG, bukan tebakan — + teks 700; non-aktif 400 + `hover:bg-white/[0.08]`. Teks **Inter 13.5px mulai x=64** = 22 margin + 13 padding + ikon 20 + gap 9.
+5. **Footer** (`83:973`) — divider 216px putih **25%** (dari `stroke-opacity="0.25"`), ikon Pengaturan 18×18 di x=25, teks di x=54 (Inter 14/400), pitch antar baris **44px**. `px-5` di wrapper bikin divider mendarat tepat di x=20..236 seperti Figma.
+
+**Accordion + garis tree dipertahankan** meski Figma-nya flat — ini permintaan eksplisit. Grup collapsible dan sub-item bertree-line hanya di-restyle ke bahasa visual panel (garis `white/25`). Konsekuensinya: dengan pitch 47.5px, menu Admin yang tergrup panjang **akan scroll** di dalam `<nav>`.
+
+**Subtitle "Admin Portal"** dari Figma dipetakan per role lewat `ROLE_PORTAL_LABEL` di `lib/auth.js` (`Admin Portal`/`Guru Portal`/`Staff Portal`/`Orang Tua Portal`) — belum lewat i18n, sama seperti `ROLE_LABEL` yang sudah ada di sana.
+
+**Sengaja beda dari Figma (semua ada komentarnya di kode):**
+
+- **Ikon** pakai lucide 20px `strokeWidth={1.8}`. Ikon Figma path custom (mis. "Data Siswa" 22×18) yang rasionya tidak sama dengan lucide; identik hanya kalau path-nya dipindah jadi komponen SVG sendiri.
+- **Logo**: Figma menggambar placeholder (shield *outline* `#2082F5` di dalam kotak biru 10%), di sini dipakai `logo baru.svg` asli di kotak 38×40 yang sama.
+- **Kartu `sidebarAlert`** tidak ada di Figma; tetap kartu putih solid (`ml-[22px] mr-[18px]`) karena gradient lamanya tabrakan warna dengan panel biru.
+- **`border-r` 1px** dipertahankan (Figma tidak punya) supaya area header putih tetap terpisah dari `bg-page` di light mode.
+- **Isi pill**: Figma menulis "Homepage" — nama halaman mockup-nya, bukan label UI nyata.
+
+**Dark mode:** file Figma cuma punya 1 frame (light), jadi tidak ada acuan. Panel birunya dibiarkan **konstan di kedua tema**; yang ikut tema hanya header/tombol collapse/border (`#F1F5F9` & `#475569` adalah nilai light-mode → di dark jadi `bg-white/10` dan `text-sidebar-text`).
+
+---
+
+## Fitur Pengaduan / Tiket — UI Admin (2026-09-28)
+
+Fitur **baru** (bukan penyambungan fitur lama): `pengaduan`/`complaint`/`chat` nol hasil di seluruh repo. Bentuknya tiket berstatus dengan nomor `PGD-<tahun>-<5 digit>`. User memilih mulai dari **backend + UI Admin dulu**; **UI Ortu belum ada**. Backend-nya (migration, model, policy, 8 route, SLA, notifikasi, audit, 12 test) dicatat di root `context.md` §Fitur Pengaduan.
+
+- `src/pages/admin/AdminComplaints.jsx` (`/admin/complaints`) — 4 tile ringkasan (Baru/Diproses/Selesai/Lewat Target) diambil dari `counts` yang ikut di response list (tanpa request kedua), `FilterBar` (status, kategori, prioritas, overdue, pencarian **debounce 350 ms**), lalu `DataTable` + `StatusBadge`. Reset halaman ditaruh di `changeFilter` (handler), **bukan** `useEffect`, supaya tidak memicu warning `react/set-state-in-effect`.
+- `src/pages/admin/AdminComplaintDetail.jsx` (`/admin/complaints/:id`) — isi + lampiran, thread percakapan (balasan Admin dibedakan latarnya), panel tindak lanjut (priority dengan hint SLA, assignee, catatan penyelesaian, tombol Proses/Selesaikan/Tolak/Buka Kembali), kotak balasan, dan hapus dengan `Modal` konfirmasi. Draft catatan disimpan per-id pengaduan supaya tidak bocor antar tiket.
+- `src/config/navigation.js` — grup menu **`navMenu.complaints`** (ikon `Inbox`) ditaruh tepat setelah Menu Utama. **Menu ini tidak ada di frame Figma**; ditambahkan bersama fiturnya dan itu ditulis di komentar kode.
+- `src/lib/statusLabels.js` — tone baru: `open` → `accent`, `in_progress` → `primary`, `resolved` → `success`.
+- i18n: blok `complaints.*` (**33 key**) + `status.open`/`in_progress`/`resolved` + `navMenu.complaints` di `id.json` & `en.json`. Kedua file itu **CRLF** — kalau menyisipkan key, sertakan `\r\n` eksplisit atau line ending-nya jadi campur.
+
+**UI Ortu juga sudah ada (2026-09-30)** — melengkapi fitur ini:
+
+- `src/pages/ortu/OrtuComplaints.jsx` (`/ortu/complaints`) — kartu pengantar + tombol "Ajukan Pengaduan" (modal: anak opsional dengan opsi "Umum", kategori, subjek, isi, lampiran via `apiPostForm`) di atas `MobileCardList` + badge status/"Lewat Target". Sukses submit → langsung pindah ke detail tiket barunya.
+- `src/pages/ortu/OrtuComplaintDetail.jsx` (`/ortu/complaints/:id`) — breadcrumb, isi + lampiran, thread balasan (balasan pihak sekolah = role ≠ `orang_tua` yang ditandai latar `primary-300/10` — **kebalikan** dari halaman Admin yang justru menandai pengadu), kotak balas, kartu "Informasi Tiket". Tidak ada panel triase/hapus (wewenang Admin).
+- Semua memakai endpoint yang sudah ada (`GET/POST /api/ortu/complaints`, `GET /api/complaints/{id}`, `POST /api/complaints/{id}/replies`) — tidak ada route backend baru.
+- **Pintu masuknya**: baris "Hubungi Tata Usaha" di `OrtuAccount.jsx`, yang sebelumnya cuma placeholder modal "segera hadir", sekarang `<Link to="/ortu/complaints">`. Key i18n barunya `complaints.accountRowHint` (key lama `ortu.contactAdminHint` jadi tidak terpakai). `OrtuDashboard.jsx` tidak disentuh (layout plek Figma).
+- `OrtuGuard` dapat prop `requireConsent` (default `true`); route pengaduan memakai `requireConsent={false}` + `requireChildSelection={false}` supaya sejalan dengan keputusan policy backend (consent bukan syarat menyampaikan keluhan) dan deep-link notifikasi tidak nyangkut di child-switcher/consent gate.
+- Notifikasi yang tadinya ber-`url` `null` sekarang terisi `/ortu/complaints/{id}` (balasan Admin & perubahan status) — lihat root `context.md` §UI Ortu Pengaduan. 15 key i18n baru di blok `complaints.*` (file CRLF).
 
 ---
 
@@ -138,56 +199,40 @@ Font: **Plus Jakarta Sans** (`font-heading`) + **Inter** (`font-body`) via Googl
 
 ---
 
-## Dashboard Orang Tua (`/ortu/dashboard`) — Redesign Lengkap
+## Dashboard Orang Tua (`/ortu/dashboard`) — Redesign v1.0
 
-File: `src/pages/ortu/OrtuDashboard.jsx`
+File: `src/pages/ortu/OrtuDashboard.jsx` (~790 baris). Logic/query **tidak berubah** — yang diganti total adalah layout & presentasi. Urutan section (sesuai komentar seksi di file):
 
-Semua logic/query **tidak berubah**. Hanya layout & komponen presentasional yang diganti total. Urutan section dari atas ke bawah:
+1. **Hero sticky** — header biru yang mengecil saat scroll + layer lingkaran dekoratif + floating pill (sapaan + avatar anak) dengan dropdown child-switcher.
+2. **Quick Actions** — 3 ikon bulat putih: Absensi, Izin Sakit, Agenda. "Agenda" **scroll** ke kartu Agenda Mendatang via `ref` (bukan navigasi) — penutup bug lama salah rute.
+3. **Banner Slideshow** — 3 slide (`banner.png`, `banner (1).png`, `banner (2).png`) + dot indicator; komponen internal `BannerSlideshow`.
+4. **Attendance Schedule & WeekStrip** — 7 hari terakhir + daftar entri absensi terbaru, data asli.
+5. **Status Hari Ini** — sadar status izin/sakit (tidak salah bilang "belum dijemput"), dari `/api/ortu/children`.
+6. **Ringkasan Tagihan** — dari `/api/ortu/children/{id}/invoices`.
+7. **Children Overview** — kartu per anak + 3 tombol aksi cepat (Absensi / Jemput / Bayar).
+8. **Authorized Pickups (QR)** — kartu penjemput sah, layout mengikuti Figma.
+9. **Agenda Mendatang** — hari libur/perayaan dari kalender akademik yang diinput Admin.
 
-1. **Greeting + child switcher pill** — nama orang tua kiri, pill anak aktif (tap → select-child atau profile) kanan
-2. **School Banner** — gradient sky→blue→navy, ilustrasi SVG inline (gedung + dua siswa), headline + CTA "Lihat Aktivitas"
-3. **Quick Actions** — 5 icon horizontal dalam card putih, tiap icon warna unik (biru/hijau/amber/ungu/merah)
-4. **Payment Alert** — amber gradient jika ada tunggakan (dengan left accent strip + CTA pill gelap); green subtle jika semua lunas
-5. **Today's Status card** — gradient biru `from-primary-400 to-#35AEFC`, live dot + nama anak + avatar + progress bar kehadiran bulan ini + 2 status pill (Jemput & SPP)
-6. **Attendance Schedule** — 7-day WeekStrip (hari aktif bulat biru solid) + legend status dot + 3 entri terakhir
-7. **Children Overview** — list per anak dengan avatar + status badge + action bar (Absensi / Jemput / Bayar)
-8. **Authorized Pickups** — 2-column grid chip nama + hubungan
-9. **Invoice Highlight** — dark navy→sky gradient, nominal besar + due date + CTA pill putih (hanya muncul kalau ada invoice aktif)
-10. **Announcements** — timeline dot kiri + judul + body line-clamp-2
-
-**Komponen internal `OrtuDashboard.jsx`** (bukan file terpisah):
-- `ChildAvatar` — avatar foto atau inisial dengan ring, size `sm`/`md`
-- `WeekStrip` — 7 hari terakhir dengan dot status per hari
-- `QuickAction` — icon button + label vertikal
-- `PickupChip` — chip penjemput 2-col grid
-- `STATUS_DOT` — map status → warna dot (hadir=green, izin=amber, sakit=sky, alpa=red)
+**Fungsi internal:** `BannerSlideshow`, `relationshipEmoji`. Warna halaman ini **hardcode** (gray Tailwind + hex), bukan token tema — pola "persis Figma" yang sama seperti Dashboard Admin.
 
 ---
 
-## Dashboard Admin (`/admin/dashboard`)
+## Dashboard Admin (`/admin/dashboard`) — Redesign Figma "Modern Command Center"
 
 File: `src/pages/admin/AdminDashboard.jsx`  
-Layout: `DashboardLayout` dengan `rightRail` dan `sidebarAlert` (pending leaves jika ada).
+Layout: `DashboardLayout` (`sidebarAlert` = cuti pending; **tanpa** `rightRail` lagi). Mengikuti frame Figma **node 33:567** — brief: isi tetap data JACOS yang sekarang, bentuknya plek Figma. Komponennya pakai hex Figma literal (lihat bagian Design Tokens).
 
-**Main content** (urutan dari atas ke bawah):
-1. **`GreetingBanner`** — sapaan dinamis (pagi/siang/sore/malam) + nama admin dari `getUser()` + badge academic year (dari `financeData.academic_year` jika ada)
-2. **`QuickActions`** — 4 tombol shortcut: Absensi Hari Ini, Approve Cuti (badge count dari `pendingLeaves.length`), Log Penjemputan, Invoice
-3. **4× `StatCard`** grid 2-col (lg: 4-col): Absensi hari ini (delta persentase kehadiran), Belum dijemput (delta "Semua terjemput" jika 0), Cuti pending, Invoice overdue
-4. Grid 2-col: **`ProgressCard`** distribusi absensi (items sudah dikonversi ke persentase, dengan caption `hadir/total siswa (x%)`) + **`TableCard`** siswa belum dijemput
-5. **`AttendanceByClassCard`** — breakdown kehadiran per kelas hari ini, bar + persentase, color-coded: hijau ≥90%, kuning ≥70%, merah <70%
-6. **`ListCard`** announcements (kondisional, tetap di main area)
+**Susunan (3 blok):**
+1. **`CommandHero`** — sapaan dinamis + badge role "TU" + headline + subjudul; chip "+" dekoratif (`aria-hidden`). Berisi 3 **`ActionTileCard`**: Approval Cuti (meta = jumlah cuti pending), Konfirmasi Bayar SPP (meta = jumlah overdue), dan **Guru Pengganti** yang `unavailable` (dashed, bukan link).
+2. **Baris tengah 3 kolom**: **`NotificationsCard`** (kartu agenda kosong + kartu notifikasi terbaru; "Bersihkan" = mark-all-read, klik item → mark-read + buka `payload.url`) · **`AttendanceReminderCard`** (rombel `not_started`/`partial`, tombol "Ingatkan" per rombel + kirim ke semua) · **`CalendarCard`** (header bulan + strip 7 hari, ‹ › pindah minggu; daftar jadwal dikosongkan).
+3. **Baris bawah grid 12 kolom**: `ClassStatusCard` (6) · `AgendaHighlightCard` (2) · kolom 4 = 2× `GaugeCard` (kehadiran & SPP) + `PickupMonitorCard`.
+
+**Sengaja dibiarkan kosong** (backend belum punya endpoint; brief: "modul tanpa endpoint tetap kosong"): kartu agenda di `NotificationsCard`; daftar jadwal `CalendarCard`; isi `AgendaHighlightCard` (CTA disembunyikan karena tidak ada halaman tujuan); tombol **"Broadcast WA"** di `PickupMonitorCard` dirender **disabled** (bukan dihapus) supaya bentuknya plek tanpa jadi kontrol palsu.
 
 **Data fetching — PENTING:**  
-Dashboard tidak lagi pakai pola N+1 `useQueries` per rombel. Semua data absensi diambil dari **1 endpoint agregasi**:
-- `GET /api/admin/reports/attendance/today-summary?date=YYYY-MM-DD`  
-  Response: `{ date, total_students, hadir, izin, sakit, alpa, by_classroom[] }`  
-  Backend hanya melakukan 2 hit DB (bukan 1+N). Lihat `AttendanceController::todaySummary()`.
+Dashboard tidak pakai pola N+1 `useQueries` per rombel. Absensi diambil dari **1 endpoint agregasi** `GET /api/admin/reports/attendance/today-summary?date=YYYY-MM-DD` — response `{ date, total_students, hadir, izin, sakit, alpa, by_classroom[] }`, backend cuma 2 hit DB (lihat `AttendanceController::todaySummary()`). Endpoint lain yang dipanggil: `submission-status`, `students/not-picked-up`, `staff/leave-requests?status=pending`, `admin/finance/dashboard`, `notifications`, `admin/settings/dismissal-cutoff` — **belum ada endpoint summary terpusat** (catatan FR-BE §10 masih berlaku). Status error dibedakan dari nilai 0 (komponen menerima `isLoading` → tampil "-", bukan "0 siswa").
 
-**Right rail** (dari atas ke bawah):
-- Pending leave list (kondisional, hanya jika ada)
-- `HighlightCard` overdue invoice (kondisional, hanya jika `overdue_count > 0`)
-- `FinanceSummaryCard` — collection rate bar + 3 angka (tagihan/terbayar/sisa) + warning overdue count (ditampilkan jika `financeData` tersedia)
-- `ActivityTimelineCard` — selalu tampil sebagai fallback, tidak bergantung kondisi apapun
+**Versi layout lama** (`GreetingBanner`/`QuickActions`/`AttendanceByClassCard`/`FinanceSummaryCard`/`ActivityTimelineCard` + right rail, commit 2026-09-25 `32b4031`) sudah **digantikan** redesign ini; komponen-komponen itu sekarang orphan (lihat tabel di bawah).
 
 ---
 
@@ -195,21 +240,30 @@ Dashboard tidak lagi pakai pola N+1 `useQueries` per rombel. Semua data absensi 
 
 | Komponen | Props utama | Keterangan |
 |---|---|---|
-| `StatCard` | `icon, label, value, tone, delta` | `delta = { value, direction: 'up'|'down' }` — tampil pill hijau/merah di pojok kanan atas |
-| `ProgressCard` | `title, caption?, items[]` | `items[].value` **harus persentase 0–100**, bukan count mentah. `caption` untuk denominator teks |
-| `AttendanceByClassCard` | `title, rows[]` | `rows = [{ className, hadir, total }]` — kalkulasi pct + warna dilakukan internal. Warna: ≥90% hijau, ≥70% amber, <70% merah |
-| `FinanceSummaryCard` | `totalBilled, totalPaid, totalOutstanding, overdueCount, periodLabel` | Collection rate bar + 3 angka keuangan. Format angka internal (juta/ribu). |
-| `GreetingBanner` | `name, dateLabel, academicYear?` | Greeting otomatis (pagi/siang/sore/malam) berdasarkan `new Date().getHours()` |
-| `QuickActions` | `actions[]` | `actions = [{ label, to, icon: LucideIcon, badge? }]` — badge muncul di pojok kanan atas tombol jika `> 0` |
-| `HighlightCard` | `title, description, ctaLabel, ctaTo, badges?` | Gradient biru, pill CTA putih. Teks di atas putih pakai nilai tetap `primary-900` (bukan token `*-fg`) |
-| `ActivityTimelineCard` | `title, viewAllTo, items[]` | `items = [{ time, who, action }]` |
+| **Figma Admin (2026-09-25)** | | |
+| `CommandHero` | `name, roleBadge, headline, subtitle, children` | Blok hero; chip "+" dekoratif `aria-hidden` |
+| `ActionTileCard` | `icon, image, title, meta, to, tone?, unavailable?` | Kartu aksi berilustrasi; `unavailable` → dashed + non-link. (`tone` saat ini tak terpakai — warning lint) |
+| `NotificationsCard` | `items, unread, isLoading, onMarkAllRead, onItemClick` | Kartu agenda (kosong) + kartu notifikasi terbaru |
+| `AttendanceReminderCard` | `classes, reminded, onRemind, onRemindAll, isPending, isBulkPending, viewAllTo` | Daftar rombel belum/sebagian input + tombol ingatkan |
+| `CalendarCard` | — | Header bulan + strip 7 hari, pager minggu; daftar jadwal masih kosong |
+| `ClassStatusCard` | `title, rows[], viewAllTo` | `rows = [{ id, name, meta, pct, trailing }]` |
+| `GaugeCard` | `overline, value, label, subLines[], tone, ctaLabel?, ctaTo?, isLoading?` | Ring gauge SVG; `isLoading` → "-" |
+| `PickupMonitorCard` | `cutoffTime, students[], logTo, settingsTo, isLoading, isError` | Mode error dibedakan dari "semua terjemput"; tombol Broadcast WA disabled |
+| `AgendaHighlightCard` | `title, emptyMessage, ctaLabel?, ctaTo?` | Kartu biru `#2082F5`; isi kosong, CTA disembunyikan |
+| **Legacy (masih dipakai Guru/Staff/Finance)** | | |
+| `StatCard` | `icon, label, value, tone, delta` | `delta = { value, direction: 'up'|'down' }` — pill hijau/merah di pojok kanan atas |
+| `ProgressCard` | `title, caption?, items[]` | `items[].value` **harus persentase 0–100**, bukan count mentah |
 | `TableCard` | `title, viewAllTo, columns[], rows[]` | Kolom `status` mendukung `{ label, tone }` untuk `StatusBadge` |
+| `HighlightCard` | `title, description, ctaLabel, ctaTo, badges?` | Gradient biru, pill CTA putih pakai nilai tetap `primary-900` (bukan token `*-fg`) |
 | `ListCard` | `title, viewAllTo, items[]` | `items = [{ initials, primary, secondary }]` |
-| `ChartCard` | — | Belum dipakai di halaman manapun |
+| **Orphan — tidak diimpor di mana pun** | | |
+| `GreetingBanner`, `QuickActions`, `AttendanceByClassCard`, `FinanceSummaryCard`, `ActivityTimelineCard`, `ChartCard`, `ActionCards` | — | Sisa layout Admin lama (`32b4031`) + `ActionCards` (baru, belum disambungkan). Kandidat hapus. |
 
 ---
 
 
+
+## Internasionalisasi (i18n)
 
 `react-i18next`, key terpusat di `src/i18n/locales/{id,en}.json`. **Wajib**: semua teks lewat `t('key')`, tidak boleh hardcode. Beberapa string minor di komponen dashboard generik (`ListCard` dll.) masih hardcode — boleh dirapikan kalau menyentuh file itu.
 
@@ -234,6 +288,7 @@ Dashboard tidak lagi pakai pola N+1 `useQueries` per rombel. Semua data absensi 
 - **Halaman scoped-per-anak (Ortu)** → pasang `ActiveChildBar` + pakai `useOrtuChildren()`.
 - **Warna baru di halaman** → pakai token `primary-*`, `accent-500`, `success-500`, `danger-500`. Boleh pakai hex literal untuk warna-warna dekoratif satu-off (banner, ilustrasi) tapi jangan buat token baru di `index.css` tanpa diskusi.
 - **Teks atau ikon di atas tint berwarna** → pakai token `*-fg` (`text-danger-fg`, `text-primary-fg`, dst), **bukan** shade 500. Token `*-fg` sudah lengkap untuk 5 tone dan otomatis berganti di dark mode, jadi jangan menambah varian `dark:` per-komponen. Detail & rasio terukurnya ada di bagian **Design Tokens** di atas.
+- **Warna persis Figma** (redesain Admin 2026-09-25, Ortu v1.0, Sidebar Expanded 2026-09-28) → boleh pakai hex literal langsung di JSX; **jangan** diam-diam "dibetulkan" jadi token tema tanpa diskusi, karena bentuk plek Figma adalah permintaan eksplisit. Kalau menambah, tulis komentar singkat berisi hex-nya supaya gampang di-grep saat migrasi token.
 
 ---
 
@@ -247,3 +302,9 @@ Dashboard tidak lagi pakai pola N+1 `useQueries` per rombel. Semua data absensi 
 - **`Drawer` (NotificationDrawer) pasca-perbaikan a11y (2026-09-18)**: `inert` saat tertutup, fokus masuk/keluar, trap `Tab`, `Escape`. Sifat `inert` baru dibuktikan lewat output render (`renderToStaticMarkup`), **belum** di a11y tree browser sungguhan.
 - **Tone `primary-fg` yang lebih gelap** (light) perlu dilihat mata: link "Lihat semua" dan label CTA sekarang `#1F6FA8`, bukan `#2D94DA`.
 - Midtrans masih sandbox stub — tombol Bayar di `OrtuInvoiceDetail.jsx` menampilkan token sandbox.
+- **Redesain Sidebar Expanded Figma (2026-09-28) belum pernah diklik-test di browser.** Perlu dicek mata: lengkung organik kanan-atas di ukuran viewport berbeda, scroll nav saat semua grup terbuka (pitch 47.5px), dark mode (panel biru konstan vs header yang ikut tema), dan posisi pill saat label seksi panjang. Utang kontras yang **sengaja dibiarkan** supaya plek Figma: putih di atas `#2082F5` **4,31:1** dan di atas item aktif putih 18% **≈3,4:1** — keduanya di bawah AA 4.5:1 untuk teks 13.5px.
+- **Redesain Dashboard Admin Figma (2026-09-25/26) belum pernah diklik-test di browser.** Perlu dicek mata: responsive 3 kolom → 1 kolom, tab `NAV_TOP_TABS` di layar sempit, `OrganicWaveSidebar` saat collapse/hover, dark mode (banyak warna hardcode), dan aksi "Ingatkan"/"Ingatkan semua".
+- **Direkonstruksi dari kode, bukan catatan sesi**: deskripsi supaya shell mobile, Dashboard Ortu v1.0, dan redesain Admin di dokumen ini diturunkan dari membaca kode + `git log` (bukan dari transkrip sesi yang menyentuhnya). Kalau ada detail perilaku yang tidak sesuai, perlakukan kode sebagai sumber kebenaran.
+- **Kontradiksi sidebar belum diputuskan**: dokumen ini (dan implementasi `--color-bg-sidebar: #ffffff` di light + komentar `index.css`) menyebut light = putih, tapi `PRODUCT.md` & root `context.md` masih menulis "sidebar selalu navy di kedua tema". Salah satu harus diperbaiki. Sejak 2026-09-28 nav expanded selalu biru, jadi sisa persoalannya cuma latar kolom + `OrganicWaveSidebar`.
+- **Fitur Pengaduan (Admin 2026-09-28 + Ortu 2026-09-30) belum pernah diklik-test di browser.** Perlu dicek mata: tile ringkasan vs `counts`, filter overdue, alur Proses → Selesaikan (wajib isi catatan penyelesaian), serta di sisi Ortu modal pengajuan di layar sempit, lampiran, dan thread balasan dua arah. Verifikasi yang sudah dilakukan hanya `php artisan test --filter=Complaint` (12 passed / 53 assertions) + `npm run build`/`lint` bersih.
+- **Utang kecil**: `ActionCards.jsx` + 6 komponen dashboard orphan belum dihapus; prop `rightRail` sudah tidak dipakai; SVG ilustrasi >1 MB (`boy`/`girl`/`logo baru`) ikut precache PWA; lint masih 5 warning (0 error).

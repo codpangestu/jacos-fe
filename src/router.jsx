@@ -26,6 +26,8 @@ import AdminDismissalSettings from './pages/admin/AdminDismissalSettings'
 import AdminAuditLog from './pages/admin/AdminAuditLog'
 import AdminConsentStatus from './pages/admin/AdminConsentStatus'
 import AdminAnnouncements from './pages/admin/AdminAnnouncements'
+import AdminComplaints from './pages/admin/AdminComplaints'
+import AdminComplaintDetail from './pages/admin/AdminComplaintDetail'
 import AnnouncementHistory from './pages/common/AnnouncementHistory'
 import GuruDashboard from './pages/guru/GuruDashboard'
 import GuruAttendance from './pages/guru/GuruAttendance'
@@ -42,6 +44,8 @@ import OrtuInvoiceDetail from './pages/ortu/OrtuInvoiceDetail'
 import OrtuPaymentHistory from './pages/ortu/OrtuPaymentHistory'
 import OrtuAccount from './pages/ortu/OrtuAccount'
 import OrtuLeaveRequests from './pages/ortu/OrtuLeaveRequests'
+import OrtuComplaints from './pages/ortu/OrtuComplaints'
+import OrtuComplaintDetail from './pages/ortu/OrtuComplaintDetail'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import PickupVerify from './pages/pickup/PickupVerify'
 import SelfAttendance from './pages/self-attendance/SelfAttendance'
@@ -84,6 +88,8 @@ export const router = createBrowserRouter([
   { path: '/admin/audit-log', element: admin(<AdminAuditLog />) },
   { path: '/admin/consent-status', element: admin(<AdminConsentStatus />) },
   { path: '/admin/announcements', element: admin(<AdminAnnouncements />) },
+  { path: '/admin/complaints', element: admin(<AdminComplaints />) },
+  { path: '/admin/complaints/:id', element: admin(<AdminComplaintDetail />) },
   { path: '/guru/dashboard', element: guru(<GuruDashboard />) },
   { path: '/guru/attendance', element: guru(<GuruAttendance />) },
   { path: '/guru/attendance/history', element: guru(<GuruAttendanceHistory />) },
@@ -103,6 +109,12 @@ export const router = createBrowserRouter([
   { path: '/ortu/payments/history', element: ortu(<OrtuPaymentHistory />) },
   { path: '/ortu/account', element: ortu(<OrtuAccount />) },
   { path: '/ortu/leave-requests', element: ortu(<OrtuLeaveRequests />) },
+  // Pengaduan tidak terkait anak tertentu (bisa juga umum), jadi tidak butuh
+  // anak aktif terpilih & tidak ikut terkunci saat consent ditarik — sama
+  // seperti keputusan policy-nya di backend. Dengan begitu deep-link dari
+  // notifikasi balasan Tata Usaha tetap mendarat di tiketnya.
+  { path: '/ortu/complaints', element: <OrtuGuard requireChildSelection={false} requireConsent={false}><OrtuComplaints /></OrtuGuard> },
+  { path: '/ortu/complaints/:id', element: <OrtuGuard requireChildSelection={false} requireConsent={false}><OrtuComplaintDetail /></OrtuGuard> },
   { path: '/ortu/announcements', element: ortu(<AnnouncementHistory />) },
   { path: '/staff/dashboard', element: staff(<StaffDashboard />) },
   { path: '/staff/pickup/verify', element: staff(<PickupVerify />) },
