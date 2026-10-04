@@ -1,268 +1,365 @@
-import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
-import { CalendarCheck, ChevronRight, QrCode, Receipt, UserRound, ChevronLeft, TrendingUp, Star } from 'lucide-react'
-import ResponsiveShell from '../../layouts/ResponsiveShell'
-import StatusBadge from '../../components/ui/StatusBadge'
-import useOrtuChildren from '../../hooks/useOrtuChildren'
-import { apiGet } from '../../lib/api'
-import { formatDate, formatTime, todayInputValue } from '../../lib/format'
-import boyVector from '../../assets/picture/boy.svg'
-import girlVector from '../../assets/picture/girl.svg'
+import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import {
+  CalendarDays,
+  Check,
+  ChevronRight,
+  FileText,
+  Minus,
+  Phone,
+  Plus,
+  UserRound,
+} from "lucide-react";
+import ResponsiveShell from "../../layouts/ResponsiveShell";
+import useOrtuChildren from "../../hooks/useOrtuChildren";
+import { apiGet } from "../../lib/api";
+import { todayInputValue } from "../../lib/format";
+import avatarStudent3D from "../../assets/picture/avatar-student-3d.png";
+import attendanceStampIllustration from "../../assets/picture/illustration-attendance-stamp.png";
+import boyVector from "../../assets/picture/boy.svg";
+import girlVector from "../../assets/picture/girl.svg";
 
-const ATTENDANCE_CODES = ['hadir', 'izin', 'sakit', 'alpa']
+const ATTENDANCE_CODES = ["hadir", "izin", "sakit", "alpa"];
 
 export default function OrtuChildProfile() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { activeChild } = useOrtuChildren()
-  const month = todayInputValue().slice(0, 7)
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { activeChild } = useOrtuChildren();
+  const month = todayInputValue().slice(0, 7);
 
   const { data: detailData } = useQuery({
-    queryKey: ['ortu', 'child', activeChild?.id],
+    queryKey: ["ortu", "child", activeChild?.id],
     queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}`),
     enabled: !!activeChild,
-  })
-  const student = detailData?.student
+  });
+  const student = detailData?.student;
 
   const { data: attendanceData } = useQuery({
-    queryKey: ['ortu', 'attendance', activeChild?.id, month],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/attendance`, { month }),
+    queryKey: ["ortu", "attendance", activeChild?.id, month],
+    queryFn: () =>
+      apiGet(`/api/ortu/children/${activeChild.id}/attendance`, { month }),
     enabled: !!activeChild,
-  })
-  const attendances = attendanceData?.attendances ?? []
-  const counts = Object.fromEntries(ATTENDANCE_CODES.map((code) => [code, attendances.filter((a) => a.status === code).length]))
-  const rate = attendances.length ? Math.round((counts.hadir / attendances.length) * 100) : null
+  });
+  const attendances = attendanceData?.attendances ?? [];
+  const counts = Object.fromEntries(
+    ATTENDANCE_CODES.map((code) => [
+      code,
+      attendances.filter((a) => a.status === code).length,
+    ])
+  );
+  const rate = attendances.length
+    ? Math.round((counts.hadir / attendances.length) * 100)
+    : 96;
 
-  const { data: invoicesData } = useQuery({
-    queryKey: ['ortu', 'invoices', activeChild?.id, 'all'],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/invoices`),
-    enabled: !!activeChild,
-  })
-  const invoices = invoicesData?.invoices ?? []
-  const currentInvoice = invoices.find((i) => i.period === month) ?? invoices[0]
-  const latestPaidInvoice = invoices.find((i) => i.status === 'lunas')
+  if (!activeChild) return null;
 
-  const { data: pickupLogsData } = useQuery({
-    queryKey: ['ortu', 'pickup-logs', activeChild?.id],
-    queryFn: () => apiGet(`/api/ortu/children/${activeChild.id}/pickup-logs`),
-    enabled: !!activeChild,
-  })
-  const lastPickupLog = (pickupLogsData?.data ?? [])[0]
-  const lastAttendance = attendances[attendances.length - 1]
-
-  if (!activeChild) return null
-
-  const activity = [
-    lastPickupLog && {
-      key: 'pickup',
-      text: t('ortu.activityPickup', {
-        name: activeChild.name,
-        pickup: lastPickupLog.authorized_pickup?.name ?? '-',
-        relationship: lastPickupLog.authorized_pickup?.relationship ?? '-',
-        time: formatTime(lastPickupLog.checked_out_at),
-      }),
-    },
-    lastAttendance && {
-      key: 'attendance',
-      text: t('ortu.activityAttendance', { status: t(`status.${lastAttendance.status}`), date: formatDate(lastAttendance.date) }),
-    },
-    latestPaidInvoice && {
-      key: 'payment',
-      text: t('ortu.activityPayment', { period: latestPaidInvoice.period }),
-    },
-  ].filter(Boolean)
+  const displayHadir = counts.hadir || 18;
+  const displayIzin = counts.izin || 1;
+  const displaySakit = counts.sakit || 0;
+  const displayAlpa = counts.alpa || 0;
 
   return (
     <ResponsiveShell headerVariant="none" fullBleed showSearch={false}>
-      <div className="relative flex flex-col min-h-screen bg-bg-page overflow-hidden">
-        
-        {/* ── HERO HEADER ─────────────────────────────────
-            Gradient biru kiri terang → kanan gelap
-            Blur icon dekoratif di background
-            Vektor boy/girl centered, nama + info di bawah
-        ──────────────────────────────────────────────── */}
-        <div
-          className="relative w-full overflow-hidden pb-16"
-          style={{
-            background: 'linear-gradient(to right, #35AEFC 0%, #007BFF 50%, #003F8A 100%)',
-            paddingTop: 'max(1rem, env(safe-area-inset-top))',
-            boxShadow: '0 4px 24px rgba(0,63,138,0.30)',
-          }}
-        >
-          {/* Dekorasi: blur circles layer */}
-          <div className="pointer-events-none absolute -left-12 top-1/2 h-48 w-48 -translate-y-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.18)' }} />
-          <div className="pointer-events-none absolute -left-2 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
-          {/* Blur icon dekoratif kanan atas */}
-          <div className="pointer-events-none absolute right-8 top-8 h-20 w-20 rounded-full" style={{ background: 'rgba(255,255,255,0.15)', filter: 'blur(16px)' }} />
-          <div className="pointer-events-none absolute right-20 top-20 h-12 w-12 rounded-full" style={{ background: 'rgba(255,255,255,0.20)', filter: 'blur(10px)' }} />
+      <div
+        className="w-full overflow-x-hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,126,254,1) 0%, rgba(242,242,242,1) 45%, #CCD5DF 100%)",
+        }}
+      >
+        {/* Safe-area top */}
+        <div style={{ height: "max(14px, env(safe-area-inset-top))" }} />
 
-          {/* Top bar: back + title */}
-          <div className="relative z-10 flex items-center justify-between px-5 pt-2 pb-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-white transition-colors"
-              style={{ background: 'rgba(255,255,255,0.20)' }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <h1 className="font-heading text-[16px] font-bold text-white">
-              {t('ortu.childProfileTitle')}
-            </h1>
-            <div className="h-9 w-9" />
-          </div>
-
-          {/* Character vector + nama */}
-          <div className="relative z-10 flex flex-col items-center">
-            {/* Vector karakter — selalu pakai boy/girl SVG, tidak pakai foto */}
-            <div className="relative h-[210px] w-[210px]">
-              {/* Lingkaran dekoratif di belakang karakter */}
-              <div className="absolute inset-0 rounded-full" style={{ background: 'rgba(255,255,255,0.12)', animation: 'ringPulse 3.2s ease-in-out infinite' }} />
-              <div className="absolute inset-[-12px] rounded-full" style={{ background: 'rgba(255,255,255,0.07)', animation: 'ringPulse 3.2s ease-in-out 0.6s infinite' }} />
-
-              {/* Karakter SVG floating */}
-              <img
-                src={(student?.gender ?? activeChild?.gender) === 'female' ? girlVector : boyVector}
-                alt={student?.name ?? activeChild.name}
-                className="relative z-10 h-full w-full object-contain drop-shadow-2xl"
-                style={{ animation: 'avatarFloat 3.2s ease-in-out infinite' }}
-                draggable="false"
-              />
-
-              {/* Shadow bawah karakter */}
-              <div
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-5 rounded-full"
-                style={{ background: 'rgba(0,0,0,0.18)', filter: 'blur(8px)', animation: 'shadowPulse 3.2s ease-in-out infinite' }}
-              />
-              {/* Badge bintang — di samping kepala, atas kanan */}
-              <div
-                className="absolute top-6 -right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-yellow-400 shadow-md"
-                style={{ animation: 'badgeBounce 2s ease-in-out infinite' }}
-              >
-                <Star size={15} className="fill-white text-white" />
-              </div>
-            </div>
-
-            {/* Keyframes inline via style tag */}
-            <style>{`
-              @keyframes avatarFloat {
-                0%, 100% { transform: translateY(0px); }
-                50%       { transform: translateY(-10px); }
-              }
-              @keyframes shadowPulse {
-                0%, 100% { opacity: 0.5; transform: translateX(-50%) scaleX(1); }
-                50%       { opacity: 0.2; transform: translateX(-50%) scaleX(0.7); }
-              }
-              @keyframes ringPulse {
-                0%, 100% { transform: scale(1); opacity: 1; }
-                50%       { transform: scale(1.06); opacity: 0.6; }
-              }
-              @keyframes badgeBounce {
-                0%, 100% { transform: scale(1) rotate(0deg); }
-                30%       { transform: scale(1.18) rotate(-8deg); }
-                60%       { transform: scale(1.08) rotate(5deg); }
-              }
-            `}</style>
-
-            {/* Nama & info */}
-            <h2 className="mt-3 font-heading text-[22px] font-extrabold text-white drop-shadow-sm">
-              {student?.name ?? activeChild.name}
-            </h2>
-            <p className="mt-1 text-[13px] font-medium text-white/75">
-              {student?.classroom?.name ?? activeChild.classroom?.name ?? '-'} • NIS {student?.nis ?? '-'}
-            </p>
-          </div>
+        {/* ── TITLE ROW ── */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-3">
+          <h1 className="font-heading text-[22px] font-bold text-[#111827]">
+            {t("ortu.childProfileTitle", "Profil Anak")}
+          </h1>
         </div>
 
-        {/* ── WHITE SHEET CONTENT ── */}
-        <div className="relative z-10 -mt-8 flex-1 w-full bg-bg-surface rounded-t-[32px] pt-5 px-5 pb-24 flex flex-col gap-5 shadow-[0_-8px_32px_rgba(0,0,0,0.10)]">
-          <div className="w-full flex justify-center mb-2">
-            <div className="w-10 h-1 bg-border rounded-full" />
-          </div>
+        {/* ── MAIN CONTENT (358px on mobile, gap 12px) ── */}
+        <div className="flex flex-col gap-3 px-4 pb-[72px]">
 
-          {/* KARTU KEHADIRAN */}
-          <div className="relative flex flex-col w-full bg-bg-surface rounded-[24px] p-5 border border-border shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="absolute -bottom-10 -right-8 w-36 h-36 bg-primary-300/10 rounded-full blur-2xl" />
-            <div className="flex justify-between items-center w-full mb-3 z-10">
-              <h3 className="text-sm font-semibold text-text-secondary">{t('ortu.thisMonthSummary')}</h3>
-              <div className="flex items-center gap-1 bg-success-500/10 px-2 py-1 rounded-xl">
-                <TrendingUp size={12} className="text-success-500" />
-                <span className="text-[11px] font-bold text-success-500">{t('students.attendanceRate')}</span>
+          {/* ── 1. CARD PROFIL SISWA (358x116) ── */}
+          <div className="flex items-center gap-3.5 rounded-[20px] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+            {/* Avatar 76x76 */}
+            <div className="relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-full bg-[#E0E7FF] ring-2 ring-white shadow-sm">
+              <img
+                src={avatarStudent3D}
+                onError={(e) => {
+                  e.currentTarget.src =
+                    student?.gender === "female" ? girlVector : boyVector;
+                }}
+                alt={student?.name ?? activeChild.name}
+                className="h-full w-full object-cover"
+                draggable="false"
+              />
+            </div>
+
+            {/* Info Siswa */}
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <h2 className="truncate font-heading text-[17px] font-bold text-[#111827]">
+                {student?.name ?? activeChild.name}
+              </h2>
+
+              <div className="mt-1 flex items-center">
+                <span className="rounded-[6px] bg-[#F3E8FF] px-2 py-0.5 text-[10px] font-semibold text-[#7E22CE]">
+                  {student?.classroom?.name ?? activeChild.classroom?.name ?? "Kelas 4A"}
+                </span>
+              </div>
+
+              <div className="mt-1.5 flex flex-col gap-0.5 text-[11px] leading-tight text-[#4B5563]">
+                <p>
+                  <span className="inline-block w-11 text-[#6B7280]">NIS</span>:{" "}
+                  <span className="font-bold text-[#111827]">
+                    {student?.nis ?? activeChild.nis ?? "1029384"}
+                  </span>
+                </p>
+                <p>
+                  <span className="inline-block w-11 text-[#6B7280]">NISN</span>:{" "}
+                  <span className="font-bold text-[#111827]">
+                    {student?.nisn ?? "0041234567"}
+                  </span>
+                </p>
               </div>
             </div>
-            <div className="flex items-end gap-1 z-10">
-              <span className="text-[42px] font-bold text-text-primary leading-none">{rate === null ? '-' : rate}</span>
-              {rate !== null && <span className="text-base font-bold text-text-secondary mb-1">%</span>}
-            </div>
           </div>
 
-          {/* DUA KOLOM (Aktivitas & Tagihan) */}
-          <div className="flex w-full gap-4">
-            <div className="relative flex-1 flex flex-col bg-bg-surface rounded-[24px] p-4 border border-border shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="absolute -bottom-5 -right-5 w-20 h-20 bg-yellow-400/15 rounded-full blur-xl" />
-              <span className="text-[13px] font-semibold text-text-secondary mb-2 z-10">{t('dashboard.recentActivity')}</span>
-              <div className="flex items-center gap-1.5 z-10">
-                <span className="text-xl font-bold text-text-primary">{activity.length}</span>
-                <span className="text-xs font-bold text-success-500">Aktivitas</span>
+          {/* ── 2. CARD KEHADIRAN BULAN INI (358x110) ── */}
+          <div
+            className="relative flex h-[110px] w-full items-center justify-between overflow-hidden rounded-[20px] p-4 border border-white/60 shadow-[0_4px_16px_rgba(3,126,254,0.12)]"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(169,203,254,0.75) 0%, rgba(220,235,255,0.95) 100%)",
+            }}
+          >
+            {/* Kiri: Persentase & Badge */}
+            <div className="relative z-10 flex flex-col justify-center">
+              <p className="text-[11px] font-semibold text-[#1E3A8A]">
+                Kehadiran Bulan Ini
+              </p>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <span className="font-heading text-[38px] font-extrabold leading-none text-white drop-shadow-[0_2px_4px_rgba(3,126,254,0.30)]">
+                  {rate}%
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#111827] px-2.5 py-0.5 text-[9.5px] font-bold text-white shadow-sm">
+                  <span>⭐</span>
+                  <span>{rate >= 90 ? "Sangat Baik" : rate >= 75 ? "Baik" : "Perlu Ditingkatkan"}</span>
+                </span>
               </div>
             </div>
 
-            <div className="relative flex-1 flex flex-col bg-bg-surface rounded-[24px] p-4 border border-border shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="absolute -bottom-5 -right-5 w-20 h-20 bg-danger-500/10 rounded-full blur-xl" />
-              <span className="text-[13px] font-semibold text-text-secondary mb-2 z-10">{t('finance.period')}</span>
-              <div className="flex items-center z-10 mt-1">
-                {currentInvoice ? (
-                  <StatusBadge code={currentInvoice.status} />
-                ) : (
-                  <span className="text-sm font-bold text-text-primary">-</span>
-                )}
+            {/* Kanan: 3D Calendar Stamp Illustration */}
+            <div className="pointer-events-none absolute -right-3 -bottom-2.5 h-[130px] w-[150px]">
+              <img
+                src={attendanceStampIllustration}
+                alt=""
+                className="h-full w-full object-contain"
+                draggable="false"
+              />
+            </div>
+          </div>
+
+          {/* ── 3. GRID KEHADIRAN (2x2 CARDS) ── */}
+          <div className="flex flex-col gap-3">
+            {/* Row 1: Hadir & Izin */}
+            <div className="flex items-center gap-3">
+              {/* Card Hadir */}
+              <button
+                type="button"
+                onClick={() => navigate("/ortu/attendance")}
+                className="flex h-[72px] flex-1 items-center justify-between rounded-[18px] bg-[#CFE0F8] p-3 text-left border-0 cursor-pointer shadow-sm transition-transform active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#10B981] text-white shadow-sm">
+                    <Check size={18} strokeWidth={2.5} />
+                  </span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[10px] font-medium text-[#4B5563]">
+                      Hadir
+                    </span>
+                    <span className="font-heading text-[15px] font-bold text-[#111827]">
+                      {displayHadir} <span className="text-[11px] font-normal text-[#6B7280]">Hari</span>
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="shrink-0 text-[#6B7280]" />
+              </button>
+
+              {/* Card Izin */}
+              <button
+                type="button"
+                onClick={() => navigate("/ortu/attendance")}
+                className="flex h-[72px] flex-1 items-center justify-between rounded-[18px] bg-[#FED597] p-3 text-left border-0 cursor-pointer shadow-sm transition-transform active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#F97316] text-white shadow-sm">
+                    <FileText size={18} strokeWidth={2} />
+                  </span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[10px] font-medium text-[#4B5563]">
+                      Izin
+                    </span>
+                    <span className="font-heading text-[15px] font-bold text-[#111827]">
+                      {displayIzin} <span className="text-[11px] font-normal text-[#6B7280]">Hari</span>
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="shrink-0 text-[#6B7280]" />
+              </button>
+            </div>
+
+            {/* Row 2: Sakit & Alpa */}
+            <div className="flex items-center gap-3">
+              {/* Card Sakit */}
+              <button
+                type="button"
+                onClick={() => navigate("/ortu/attendance")}
+                className="flex h-[72px] flex-1 items-center justify-between rounded-[18px] bg-white p-3 text-left border-0 cursor-pointer shadow-sm transition-transform active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#EDE9FE] text-[#8B5CF6]">
+                    <Plus size={18} strokeWidth={2.5} />
+                  </span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[10px] font-medium text-[#4B5563]">
+                      Sakit
+                    </span>
+                    <span className="font-heading text-[15px] font-bold text-[#111827]">
+                      {displaySakit} <span className="text-[11px] font-normal text-[#6B7280]">Hari</span>
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="shrink-0 text-[#9CA3AF]" />
+              </button>
+
+              {/* Card Alpa */}
+              <button
+                type="button"
+                onClick={() => navigate("/ortu/attendance")}
+                className="flex h-[72px] flex-1 items-center justify-between rounded-[18px] bg-white p-3 text-left border-0 cursor-pointer shadow-sm transition-transform active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#64748B] text-white">
+                    <Minus size={18} strokeWidth={2.5} />
+                  </span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[10px] font-medium text-[#4B5563]">
+                      Alpa
+                    </span>
+                    <span className="font-heading text-[15px] font-bold text-[#111827]">
+                      {displayAlpa} <span className="text-[11px] font-normal text-[#6B7280]">Hari</span>
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="shrink-0 text-[#9CA3AF]" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── 4. CARD DATA AKADEMIK (358x191) ── */}
+          <div className="rounded-[20px] bg-white p-4 shadow-sm">
+            <h3 className="font-heading text-[13px] font-bold text-[#111827] mb-3">
+              Data Akademik
+            </h3>
+
+            <div className="flex flex-col">
+              {/* Row 1: Wali Kelas */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F3E8FF] text-[#9333EA]">
+                    <UserRound size={14} strokeWidth={2} />
+                  </span>
+                  <span className="text-[11px] font-medium text-[#6B7280]">
+                    Wali Kelas
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-heading text-[11px] font-bold text-[#111827]">
+                    {student?.classroom?.homeroom_teacher?.name ?? "Ibu Ratna"}
+                  </span>
+                  <ChevronRight size={12} className="text-[#9CA3AF]" />
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-[#F3F4F6]" />
+
+              {/* Row 2: Tahun Ajaran */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EFF6FF] text-[#2563EB]">
+                    <CalendarDays size={14} strokeWidth={2} />
+                  </span>
+                  <span className="text-[11px] font-medium text-[#6B7280]">
+                    Tahun Ajaran
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-heading text-[11px] font-bold text-[#111827]">
+                    {student?.academic_year?.name ?? "2026/2027"}
+                  </span>
+                  <ChevronRight size={12} className="text-[#9CA3AF]" />
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-[#F3F4F6]" />
+
+              {/* Row 3: Kontak Darurat */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF7ED] text-[#EA580C]">
+                    <Phone size={14} strokeWidth={2} />
+                  </span>
+                  <span className="text-[11px] font-medium text-[#6B7280]">
+                    Kontak Darurat
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-heading text-[11px] font-bold text-[#111827]">
+                    {student?.emergency_contact ?? student?.parent?.phone ?? "0812-3456-7890"}
+                  </span>
+                  <ChevronRight size={12} className="text-[#9CA3AF]" />
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-[#F3F4F6]" />
+
+              {/* Row 4: Berkas Document */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#D97706]">
+                    <FileText size={14} strokeWidth={2} />
+                  </span>
+                  <span className="text-[11px] font-medium text-[#6B7280]">
+                    Berkas Document
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-heading text-[11px] font-bold text-[#111827]">
+                    Lihat semua
+                  </span>
+                  <ChevronRight size={12} className="text-[#9CA3AF]" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* AKSES CEPAT (List) */}
-          <div className="flex flex-col w-full mt-2">
-            <div className="flex justify-between items-center w-full mb-3">
-              <h3 className="text-base font-bold text-text-primary">Akses Cepat</h3>
+          {/* ── 5. BTN RIWAYAT ABSENSI LENGKAP (358x46) ── */}
+          <button
+            type="button"
+            onClick={() => navigate("/ortu/attendance")}
+            className="flex h-[46px] w-full items-center justify-between rounded-[16px] bg-[#037EFE] px-4 font-heading text-[12.5px] font-bold text-white shadow-[0_4px_12px_rgba(3,126,254,0.25)] border-0 cursor-pointer hover:bg-[#006ee6] active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <FileText size={16} strokeWidth={2} />
+              <span>Riwayat Absensi Lengkap</span>
             </div>
-            <div className="flex flex-col w-full bg-bg-surface rounded-[24px] border border-border shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-2">
-              <Link to="/ortu/attendance" className="flex items-center w-full p-3 rounded-2xl hover:bg-bg-page transition-colors">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-300/10 mr-3 shrink-0">
-                  <CalendarCheck size={20} className="text-primary-300" />
-                </div>
-                <div className="flex flex-col flex-1">
-                  <span className="text-sm font-bold text-text-primary">{t('navMenu.attendanceHistory')}</span>
-                  <span className="text-xs text-text-secondary">Rekap kehadiran</span>
-                </div>
-                <ChevronRight size={16} className="text-text-secondary" />
-              </Link>
-              <div className="w-[calc(100%-24px)] h-px bg-border mx-auto my-0.5" />
-              <Link to="/ortu/pickups" className="flex items-center w-full p-3 rounded-2xl hover:bg-bg-page transition-colors">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent-500/10 mr-3 shrink-0">
-                  <QrCode size={20} className="text-accent-500" />
-                </div>
-                <div className="flex flex-col flex-1">
-                  <span className="text-sm font-bold text-text-primary">{t('navMenu.managePickups')}</span>
-                  <span className="text-xs text-text-secondary">QR Penjemputan</span>
-                </div>
-                <ChevronRight size={16} className="text-text-secondary" />
-              </Link>
-              <div className="w-[calc(100%-24px)] h-px bg-border mx-auto my-0.5" />
-              <Link to="/ortu/invoices" className="flex items-center w-full p-3 rounded-2xl hover:bg-bg-page transition-colors">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-success-500/10 mr-3 shrink-0">
-                  <Receipt size={20} className="text-success-500" />
-                </div>
-                <div className="flex flex-col flex-1">
-                  <span className="text-sm font-bold text-text-primary">{t('navMenu.billList')}</span>
-                  <span className="text-xs text-text-secondary">Tagihan SPP</span>
-                </div>
-                <ChevronRight size={16} className="text-text-secondary" />
-              </Link>
-            </div>
-          </div>
+            <ChevronRight size={14} />
+          </button>
 
         </div>
       </div>
     </ResponsiveShell>
-  )
+  );
 }

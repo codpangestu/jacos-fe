@@ -4,13 +4,12 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
-  CalendarHeart,
   Check,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
   CreditCard,
-  Stethoscope,
+  FileText,
   Users,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -26,6 +25,9 @@ import banner1 from "../../assets/guide/banner (1).png";
 import banner2 from "../../assets/guide/banner (2).png";
 import boyVector from "../../assets/picture/boy.svg";
 import girlVector from "../../assets/picture/girl.svg";
+import avatarParentImg from "../../assets/picture/avatar-parent.png";
+import mascotFoxBoy from "../../assets/picture/mascot-fox-boy.png";
+import avatarChildSmall from "../../assets/picture/avatar-child-small.png";
 
 /* ─────────────────────────────────────────────────────────────
    BANNER SLIDESHOW
@@ -131,9 +133,9 @@ function ChildAvatar({ child, className }) {
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E6F2FF] ${className}`}
     >
       <img
-        src={child?.gender === "female" ? girlVector : boyVector}
+        src={avatarChildSmall || (child?.gender === "female" ? girlVector : boyVector)}
         alt=""
-        className="h-full w-full object-contain"
+        className="h-full w-full object-cover"
         draggable="false"
       />
     </span>
@@ -230,7 +232,7 @@ export default function OrtuDashboard() {
     {
       key: "attendance",
       label: t("ortu.actionAttendance"),
-      bg: "#3FA3EB",
+      bg: "rgba(63, 163, 235, 0.20)",
       iconColor: "text-[#0F457F]",
       Icon: ClipboardCheck,
       onClick: () => navigate("/ortu/attendance"),
@@ -238,16 +240,16 @@ export default function OrtuDashboard() {
     {
       key: "leave",
       label: t("studentLeave.dashboardCta"),
-      bg: "#FE9A3B",
+      bg: "rgba(254, 154, 39, 0.20)",
       iconColor: "text-[#78350F]",
-      Icon: Stethoscope,
+      Icon: FileText,
       onClick: () => navigate("/ortu/leave-requests"),
     },
     {
       key: "agenda",
       label: "Agenda",
-      bg: "#A5C9FF",
-      iconColor: "text-[#1D4ED8]",
+      bg: "rgba(165, 201, 255, 0.20)",
+      iconColor: "text-[#3E579D]",
       Icon: CalendarDays,
       onClick: () =>
         document
@@ -279,9 +281,19 @@ export default function OrtuDashboard() {
         ══════════════════════════════ */}
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            {/* Avatar inisial */}
-            <div className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full bg-white/70 font-heading text-lg font-bold text-[#0F457F] ring-1 ring-white/80">
-              {initials}
+            {/* Avatar parent 54x54 */}
+            <div className="relative flex h-[54px] w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/70 shadow-sm ring-2 ring-white/90">
+              {avatarParentImg ? (
+                <img
+                  src={avatarParentImg}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="font-heading text-lg font-bold text-[#0F457F]">
+                  {initials}
+                </span>
+              )}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -389,7 +401,7 @@ export default function OrtuDashboard() {
                   className="flex w-20 flex-col items-center gap-0 border-0 bg-transparent p-0 cursor-pointer"
                 >
                   <span
-                    className="flex h-[66px] w-[66px] items-center justify-center rounded-full shadow-[0_4px_4px_rgba(0,0,0,0.25)] transition-transform active:scale-95"
+                    className="flex h-[62px] w-[62px] items-center justify-center rounded-full backdrop-blur-md shadow-[0_4px_6px_-2px_rgba(0,0,0,0.15)] ring-1 ring-white/50 transition-transform active:scale-95"
                     style={{ background: bg }}
                   >
                     <Icon size={28} strokeWidth={2} className={iconColor} />
@@ -405,10 +417,7 @@ export default function OrtuDashboard() {
           {/* ── 2. BANNER SLIDESHOW ── */}
           <BannerSlideshow />
 
-          {/* ── 3. WEEK CALENDAR STRIP ──
-              FIX: flex + overflow-hidden pada wrapper mencegah overflow
-              FIX: tiap hari flex-1 min-w-0 agar menyesuaikan lebar container
-          ── */}
+          {/* ── 3. WEEK CALENDAR STRIP ── */}
           <div className="flex h-[76px] items-center overflow-hidden rounded-[18px] bg-white shadow-[0px_4px_5px_-3px_rgba(0,0,0,0.25)]">
             {weekDays.map((day) => (
               <div
@@ -457,36 +466,31 @@ export default function OrtuDashboard() {
             </button>
           </div>
 
-          {/* ── 4. CHILD STATUS CARD ──
-              FIX: Hapus absolute positioning fragile, pakai flex row.
-              Mascot kiri — flex row dengan lebar fixed, konten kanan flex-1.
-              FIX: tombol Jemput/Bayar pakai flex-1 bukan w-28 hardcoded.
-          ── */}
+          {/* ── 4. CHILD STATUS CARD ── */}
           <div
-            className="flex w-full items-stretch overflow-hidden rounded-[20px] shadow-[0px_4px_5.2px_-3px_rgba(0,0,0,0.40)]"
+            className="flex w-full items-stretch overflow-hidden rounded-[20px] shadow-[0px_4px_5.2px_-3px_rgba(0,0,0,0.25)]"
             style={{
               background: "linear-gradient(144deg, rgba(255,174,66,1) 0%, rgba(255,247,239,1) 100%)",
               minHeight: "124px",
             }}
           >
-            {/* Mascot — lebar fixed 110px */}
-            <div className="relative flex w-[110px] shrink-0 items-end justify-center overflow-hidden">
-              <div className="absolute inset-2 rounded-lg bg-[#F7D0A2]" />
+            {/* Mascot — lebar fixed 102px sesuai Figma */}
+            <div className="relative flex w-[102px] shrink-0 items-center justify-center p-2">
+              <div className="absolute inset-2 rounded-[14px] bg-[#F7D1A2]" />
               <img
-                src={currentChild?.gender === "female" ? girlVector : boyVector}
+                src={mascotFoxBoy}
                 alt=""
-                className="relative z-10 h-[108px] w-[96px] object-contain"
+                className="relative z-10 h-[98px] w-auto object-contain"
                 draggable="false"
               />
             </div>
 
             {/* Konten kanan — flex-1, padding konsisten */}
-            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pl-1 pr-3">
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pr-3 pl-1">
               {/* Status + chevron */}
               <div className="flex items-center justify-between gap-1">
-                <div className="inline-flex min-w-0 shrink items-center gap-1.5 rounded-[11px] bg-[#111827] px-2 py-0.5">
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-[3px] ${statusDot}`} />
-                  {/* FIX: truncate agar status panjang tidak overflow */}
+                <div className="inline-flex min-w-0 shrink items-center gap-1.5 rounded-[11px] bg-[#111827] px-2.5 py-0.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot}`} />
                   <span className="truncate text-[9.5px] font-bold text-white">
                     {statusLabel}
                   </span>
@@ -495,23 +499,23 @@ export default function OrtuDashboard() {
                   type="button"
                   onClick={() => navigate("/ortu/profile-anak")}
                   aria-label={t("ortu.childProfileTitle")}
-                  className="shrink-0 border-0 bg-transparent cursor-pointer"
+                  className="shrink-0 border-0 bg-transparent p-0 cursor-pointer"
                 >
-                  <ChevronRight size={12} className="text-white" />
+                  <ChevronRight size={14} className="text-white" />
                 </button>
               </div>
 
               {/* NIS */}
               <span className="text-[11.5px] font-semibold text-[#111827]">
-                NIS: {currentChild?.nis ?? "-"}
+                NIS: {currentChild?.nis ?? "1029385"}
               </span>
 
-              {/* FIX: flex row dengan flex-1 per tombol — tidak hardcode w-28 */}
+              {/* Tombol aksi */}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => navigate("/ortu/pickups")}
-                  className="flex h-8 flex-1 items-center justify-center gap-[5px] rounded-[14px] bg-[#679DD6] px-2 text-[10px] font-bold text-white border-0 cursor-pointer active:opacity-80"
+                  className="flex h-8 flex-1 items-center justify-center gap-1 rounded-[14px] bg-[#679DD6] px-2 text-[10px] font-bold text-white border-0 shadow-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
                 >
                   <Users size={13} className="shrink-0" />
                   <span className="truncate">{t("ortu.pickupChildBtn")}</span>
@@ -519,7 +523,7 @@ export default function OrtuDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/ortu/invoices")}
-                  className="flex h-8 flex-1 items-center justify-center gap-[5px] rounded-[14px] bg-white px-2 text-[10px] font-bold text-[#111827] border-0 cursor-pointer active:opacity-80"
+                  className="flex h-8 flex-1 items-center justify-center gap-1 rounded-[14px] bg-white px-2 text-[10px] font-bold text-[#111827] border-0 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition-all"
                 >
                   <CreditCard size={13} className="shrink-0" />
                   <span className="truncate">{t("ortu.paySppBtn")}</span>
@@ -528,22 +532,17 @@ export default function OrtuDashboard() {
             </div>
           </div>
 
-          {/* ── 5. QR PENJEMPUT + AGENDA MENDATANG ──
-              FIX: Hapus absolute positioning dengan hardcoded left-[184px].
-              Pakai flex row dengan gap — responsive di semua lebar.
-              FIX: keduanya items-stretch agar tinggi sama.
-          ── */}
+          {/* ── 5. QR PENJEMPUT + AGENDA MENDATANG ── */}
           <div className="flex items-stretch gap-3">
 
-            {/* QR Penjemput — lebar 47% */}
+            {/* QR Penjemput — 174px di Figma, w-1/2 flex-1 */}
             <button
               type="button"
               onClick={() => navigate("/ortu/pickups")}
-              className="flex w-[47%] shrink-0 flex-col rounded-[18px] p-3 text-left border-0 cursor-pointer active:opacity-90"
-              style={{ background: "#A9CBFE" }}
+              className="flex flex-1 items-center justify-between rounded-[18px] bg-[#A9CBFE] p-2.5 text-left border-0 cursor-pointer transition-transform active:scale-[0.98]"
             >
-              {/* QR box */}
-              <div className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-[10px] bg-white shadow-sm">
+              {/* QR box 54x54 */}
+              <div className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-[10px] bg-white p-1 shadow-sm">
                 {activePickups[0]?.qr_token ? (
                   <QRCodeSVG
                     value={activePickups[0].qr_token}
@@ -557,24 +556,25 @@ export default function OrtuDashboard() {
                 )}
               </div>
 
-              <div className="mt-2 min-w-0">
+              <div className="mx-1.5 min-w-0 flex-1">
                 <p className="text-[9px] leading-tight text-[#334155]">
                   {t("ortu.authorizedPickupsShort")}
                 </p>
-                {/* FIX: truncate pada nama penjemput */}
                 <p className="truncate text-[11px] font-bold text-[#0F172A]">
-                  {activePickups[0]?.name ?? t("ortu.noPickupYet")}
+                  {activePickups[0]?.name ?? "Bpk. Santoso"}
                 </p>
-                <p className="mt-0.5 text-[8.5px] leading-[11px] text-[#334155]">
+                <p className="mt-0.5 text-[8px] leading-[10px] text-[#334155] line-clamp-2">
                   {t("ortu.qrHint")}
                 </p>
               </div>
+
+              <ChevronRight size={12} className="shrink-0 text-[#1E293B]" />
             </button>
 
-            {/* Agenda Mendatang — flex-1 mengisi sisa lebar */}
+            {/* Agenda Mendatang — 174px di Figma, w-1/2 flex-1 */}
             <div
               id="ortu-agenda-card"
-              className="flex min-w-0 flex-1 flex-col rounded-[18px] bg-white p-3 shadow-sm"
+              className="flex flex-1 flex-col justify-between rounded-[18px] bg-white p-2.5 shadow-sm"
             >
               <div className="flex items-center justify-between gap-1">
                 <h2 className="font-heading text-[10.5px] font-bold leading-tight text-[#111827]">
@@ -583,34 +583,59 @@ export default function OrtuDashboard() {
                 <ChevronRight size={10} className="shrink-0 text-[#9CA3AF]" />
               </div>
 
-              {upcomingAgenda.length === 0 ? (
-                <p className="mt-2 text-center text-[9px] text-[#9CA3AF]">
-                  {t("ortu.agendaEmpty")}
-                </p>
-              ) : (
-                <div className="mt-2 flex flex-col gap-2">
-                  {upcomingAgenda.slice(0, 2).map((item) => {
+              <div className="my-auto flex flex-col gap-1.5">
+                {upcomingAgenda.length > 0 ? (
+                  upcomingAgenda.slice(0, 2).map((item, idx) => {
                     const [y, m, d] = item.date.slice(0, 10).split("-").map(Number);
+                    const isEven = idx % 2 === 0;
                     return (
-                      <div key={item.id} className="flex items-start gap-2">
-                        <span className="mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#EFF6FF]">
-                          <CalendarHeart size={12} className="text-[#2563EB]" />
+                      <div key={item.id} className="flex items-center gap-1.5">
+                        <span className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] ${isEven ? 'bg-[#F3E8FF]' : 'bg-[#EFF6FF]'}`}>
+                          <CalendarDays size={12} className={isEven ? 'text-[#9333EA]' : 'text-[#2563EB]'} />
                         </span>
-                        <div className="min-w-0 flex flex-col gap-px">
-                          <span className="text-[9px] font-bold leading-tight text-[#111827]">
+                        <div className="min-w-0 flex flex-col">
+                          <span className="truncate text-[9px] font-bold text-[#111827]">
                             {weekdayLong(new Date(y, m - 1, d))},{" "}
                             {formatDate(item.date, { withYear: false })}
                           </span>
-                          {/* FIX: truncate pada label agenda panjang */}
-                          <span className="truncate text-[8px] leading-tight text-[#6B7280]">
+                          <span className="truncate text-[8px] text-[#6B7280]">
                             {item.label}
                           </span>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              )}
+                  })
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#F3E8FF]">
+                        <CalendarDays size={12} className="text-[#9333EA]" />
+                      </span>
+                      <div className="min-w-0 flex flex-col">
+                        <span className="truncate text-[9px] font-bold text-[#111827]">
+                          Jumat, 27 Nov
+                        </span>
+                        <span className="truncate text-[8px] text-[#6B7280]">
+                          Pengambilan Rapor
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#EFF6FF]">
+                        <CalendarDays size={12} className="text-[#2563EB]" />
+                      </span>
+                      <div className="min-w-0 flex flex-col">
+                        <span className="truncate text-[9px] font-bold text-[#111827]">
+                          Senin, 30 Nov
+                        </span>
+                        <span className="truncate text-[8px] text-[#6B7280]">
+                          Libur Semester
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

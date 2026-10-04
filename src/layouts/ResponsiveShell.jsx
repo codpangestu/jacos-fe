@@ -19,6 +19,7 @@ export default function ResponsiveShell({
   headerVariant,
   fullBleed = false,
   showSearch = true,
+  hideTabs = false,
   sidebarAlert,
   rightRail,
   children,
@@ -34,6 +35,7 @@ export default function ResponsiveShell({
         pageSubtitle={pageSubtitle}
         headerVariant={headerVariant}
         fullBleed={fullBleed}
+        hideTabs={hideTabs}
       >
         {children}
       </MobileAppShell>
