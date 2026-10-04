@@ -20,6 +20,13 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 })
 
+// Sinkronkan <html lang> dengan bahasa terpilih — sebelumnya selalu statis
+// "id" bahkan saat user EN (a11y: screen reader membaca fonem dgn benar).
+document.documentElement.lang = i18n.language
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng
+})
+
 export function setLanguage(lang) {
   localStorage.setItem(LANG_STORAGE_KEY, lang)
   i18n.changeLanguage(lang)

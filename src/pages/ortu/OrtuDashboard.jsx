@@ -19,7 +19,7 @@ import NotificationBell from "../../components/NotificationBell";
 import useOrtuChildren from "../../hooks/useOrtuChildren";
 import { apiGet } from "../../lib/api";
 import { setActiveChildId } from "../../lib/activeChild";
-import { formatDate, weekdayLong, weekdaysShort } from "../../lib/format";
+import { formatDate, weekdayLong, weekdaysShort, nowWib } from "../../lib/format";
 import { getUser } from "../../lib/auth";
 import bannerImg from "../../assets/guide/banner.png";
 import banner1 from "../../assets/guide/banner (1).png";
@@ -34,6 +34,7 @@ import { getChildMascot, getChildGender } from "../../lib/childProfile";
    FIX: overflow-hidden on container, dot via Tailwind only
 ───────────────────────────────────────────────────────────── */
 function BannerSlideshow() {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState(0);
   const touchStartX = useRef(null);
   const slides = [bannerImg, banner1, banner2];
@@ -44,8 +45,11 @@ function BannerSlideshow() {
   );
 
   useEffect(() => {
-    const t = setInterval(() => goTo(current + 1), 4000);
-    return () => clearInterval(t);
+    // Auto-play dihentikan kalau user meminta reduce-motion (WCAG 2.3.3) —
+    // dot & swipe manual tetap berfungsi.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const iv = setInterval(() => goTo(current + 1), 4000);
+    return () => clearInterval(iv);
   }, [current, goTo]);
 
   return (
@@ -77,19 +81,23 @@ function BannerSlideshow() {
         ))}
       </div>
 
-      {/* Dot indicator — absolute bottom, full Tailwind, no inline style */}
-      <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1">
+      {/* Dot indicator — tombol 24×24 (target sentuh min) dgn visual dot kecil di dalam */}
+      <div className="absolute inset-x-0 bottom-1 flex items-center justify-center">
         {slides.map((_, i) => (
           <button
             key={i}
             type="button"
             onClick={() => goTo(i)}
-            aria-label={`Show slide ${i + 1}`}
+            aria-label={t("ortu.showSlide", { n: i + 1 })}
             aria-current={current === i}
-            className={`h-1.5 rounded-full border-0 p-0 cursor-pointer transition-all duration-300 ${
-              i === current ? "w-4 bg-white" : "w-1.5 bg-white/50"
-            }`}
-          />
+            className="flex h-6 w-6 items-center justify-center border-0 bg-transparent p-0 cursor-pointer"
+          >
+            <span
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === current ? "w-4 bg-white" : "w-1.5 bg-white/50"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>
@@ -131,11 +139,13 @@ export default function OrtuDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { children, activeChild } = useOrtuChildren();
+  const { children, activeChild, isLoading: childrenLoading, isError: childrenError, refetch: refetchChildren } = useOrtuChildren();
   const user = getUser();
 
   const currentChild = activeChild ?? children[0];
-  const today = new Date();
+  // "Hari ini" selalu wall-clock WIB (NFR §7.2) — new Date() biasa bisa geser
+  // tanggal kalau device user di luar zona WIB.
+  const today = nowWib();
   const pad2 = (n) => String(n).padStart(2, "0");
 
   /* ── Queries ── */
@@ -172,11 +182,70 @@ export default function OrtuDashboard() {
   });
   const upcomingAgenda = calendarData?.holidays ?? [];
 
+  /* ── Invoice: cari tagihan belum/terlambat bayar terdekat ── */
+  const { data: invoicesData } = useQuery({
+    queryKey: ["ortu", "invoices", currentChild?.id, "unpaid"],
+    queryFn: () => apiGet(`/api/ortu/children/${currentChild.id}/invoices`),
+    enabled: !!currentChild,
+  });
+  const unpaidInvoices = (invoicesData?.invoices ?? []).filter((i) =>
+    ["belum_bayar", "terlambat"].includes(i.status),
+  );
+  const nearestInvoice = unpaidInvoices
+    .slice()
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0] ?? null;
+  const isOverdue = nearestInvoice?.status === "terlambat" ||
+    (nearestInvoice?.due_date && new Date(nearestInvoice.due_date) < today);
+
   const { data: announcementsData } = useQuery({
     queryKey: ["announcements", "feed"],
     queryFn: () => apiGet("/api/announcements"),
   });
   const latestAnnouncements = announcementsData?.announcements ?? [];
+
+  if (childrenLoading && children.length === 0) {
+    return (
+      <ResponsiveShell headerVariant="none" fullBleed showSearch={false}>
+        <div
+          className="w-full space-y-3 px-4 pt-6 pb-24"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(3,126,254,1) 0%, rgba(242,237,237,1) 27%, #F3F4F6 100%)",
+          }}
+        >
+          <div className="h-14 animate-pulse rounded-2xl bg-white/70" />
+          <div className="h-[86px] animate-pulse rounded-2xl bg-white/70" />
+          <div className="h-[157px] animate-pulse rounded-3xl bg-white/70" />
+          <div className="h-[124px] animate-pulse rounded-[20px] bg-white/70" />
+        </div>
+      </ResponsiveShell>
+    );
+  }
+
+  if (childrenError && children.length === 0) {
+    return (
+      <ResponsiveShell headerVariant="none" fullBleed showSearch={false}>
+        <div
+          className="w-full px-4 pt-8 pb-24"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(3,126,254,1) 0%, rgba(242,237,237,1) 27%, #F3F4F6 100%)",
+          }}
+        >
+          <div role="alert" className="rounded-2xl border border-red-200 bg-white p-5 text-center shadow-sm">
+            <p className="text-sm font-semibold text-red-700">{t("dashboard.loadError")}</p>
+            <button
+              type="button"
+              onClick={() => refetchChildren()}
+              className="mt-3 rounded-xl bg-[#0C2B4C] px-4 py-2 text-sm font-semibold text-white border-0 cursor-pointer"
+            >
+              {t("common.retry")}
+            </button>
+          </div>
+        </div>
+      </ResponsiveShell>
+    );
+  }
 
   if (children.length === 0) return null;
 
@@ -233,7 +302,7 @@ export default function OrtuDashboard() {
     },
     {
       key: "agenda",
-      label: "Agenda",
+      label: t("ortu.actionAgenda"),
       bg: "rgba(165, 201, 255, 0.20)",
       iconColor: "text-[#3E579D]",
       Icon: CalendarDays,
@@ -380,7 +449,7 @@ export default function OrtuDashboard() {
                   >
                     <Icon size={28} strokeWidth={2} className={iconColor} />
                   </span>
-                  <span className="mt-1.5 text-center font-heading text-[12px] font-bold leading-tight text-[#1F2937]">
+                  <span className="mt-1.5 text-center font-heading text-[12px] font-bold leading-tight text-[#111827]">
                     {label}
                   </span>
                 </button>
@@ -481,7 +550,7 @@ export default function OrtuDashboard() {
 
               {/* NIS */}
               <span className="text-[11.5px] font-semibold text-[#111827]">
-                NIS: {currentChild?.nis ?? "-"}
+                {t("students.nis")}: {currentChild?.nis ?? "-"}
               </span>
 
               {/* Tombol aksi */}
@@ -489,16 +558,26 @@ export default function OrtuDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate("/ortu/pickups")}
-                  className="flex h-8 flex-1 items-center justify-center gap-1 rounded-[14px] bg-[#679DD6] px-2 text-[10px] font-bold text-white border-0 shadow-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+                  className="flex h-8 flex-1 items-center justify-center gap-1 rounded-[14px] bg-[#3474B0] px-2 text-[10px] font-bold text-white border-0 shadow-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
                 >
                   <Users size={13} className="shrink-0" />
                   <span className="truncate">{t("ortu.pickupChildBtn")}</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/ortu/invoices")}
-                  className="flex h-8 flex-1 items-center justify-center gap-1 rounded-[14px] bg-white px-2 text-[10px] font-bold text-[#111827] border-0 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition-all"
+                  onClick={() =>
+                    nearestInvoice
+                      ? navigate(`/ortu/invoices/${nearestInvoice.id}`)
+                      : navigate("/ortu/invoices")
+                  }
+                  className="relative flex h-8 flex-1 items-center justify-center gap-1 rounded-[14px] bg-white px-2 text-[10px] font-bold text-[#111827] border-0 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition-all"
                 >
+                  {/* Dot merah — muncul kalau ada tagihan lewat tenggat */}
+                  {isOverdue && (
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-white">
+                      <span className="text-[7px] font-bold text-white leading-none">!</span>
+                    </span>
+                  )}
                   <CreditCard size={13} className="shrink-0" />
                   <span className="truncate">{t("ortu.paySppBtn")}</span>
                 </button>
@@ -580,7 +659,7 @@ export default function OrtuDashboard() {
                     );
                   })
                 ) : (
-                  <p className="py-2 text-center text-[9px] text-[#9CA3AF]">
+                  <p className="py-2 text-center text-[9px] text-[#6B7280]">
                     {t("ortu.agendaEmpty")}
                   </p>
                 )}
@@ -597,38 +676,39 @@ export default function OrtuDashboard() {
                     <Megaphone size={14} />
                   </span>
                   <h2 className="font-heading text-[12px] font-bold text-[#111827]">
-                    Pengumuman Sekolah
+                    {t("ortu.announcementsTitle")}
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate("/ortu/announcements")}
-                  className="flex items-center gap-0.5 text-[11px] font-bold text-[#037EFE] hover:underline border-0 bg-transparent cursor-pointer p-0"
+                  className="flex items-center gap-0.5 text-[11px] font-bold text-[#0369D6] hover:underline border-0 bg-transparent cursor-pointer p-0"
                 >
-                  <span>Lihat Semua</span>
-                  <ChevronRight size={13} />
+                  <span>{t("common.viewAll")}</span>
+                  <ChevronRight size={13} className="shrink-0 text-[#9CA3AF]" />
                 </button>
               </div>
 
               <div className="flex flex-col gap-1.5 pt-1">
                 {latestAnnouncements.slice(0, 2).map((item) => (
-                  <div
+                  <button
                     key={item.id}
+                    type="button"
                     onClick={() => navigate("/ortu/announcements")}
-                    className="flex flex-col gap-1 rounded-[12px] bg-[#F8FAFC] p-2.5 transition hover:bg-[#F1F5F9] cursor-pointer"
+                    className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F8FAFC] p-2.5 text-left transition hover:bg-[#F1F5F9] cursor-pointer border-0"
                   >
-                    <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center justify-between gap-2">
                       <span className="truncate text-[11.5px] font-bold text-[#111827]">
                         {item.title}
                       </span>
-                      <span className="shrink-0 text-[9.5px] text-[#9CA3AF]">
+                      <span className="shrink-0 text-[9.5px] text-[#64748B]">
                         {formatDate(item.created_at, { withYear: false })}
                       </span>
-                    </div>
-                    <p className="text-[10.5px] text-[#4B5563] line-clamp-1">
+                    </span>
+                    <span className="text-[10.5px] text-[#4B5563] line-clamp-1">
                       {item.body}
-                    </p>
-                  </div>
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>

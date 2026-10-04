@@ -17,13 +17,18 @@ import {
 } from 'lucide-react'
 import ChildAvatar from '../../components/ortu/ChildAvatar'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
+import { setActiveChildId } from '../../lib/activeChild'
 import { apiGet } from '../../lib/api'
 import { formatCurrency, formatDateTime } from '../../lib/format'
 
 export default function OrtuPaymentHistory() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { activeChild, children, setActiveChild } = useOrtuChildren()
+  // Catatan: hook ini TIDAK mengembalikan setter — anak aktif diubah lewat
+  // setActiveChildId() dari lib/activeChild (persis seperti child-switcher
+  // dashboard). Sebelumnya halaman ini memanggil setActiveChild?.() yang
+  // undefined, jadi dropdown ganti anak tidak pernah berefek apa pun.
+  const { activeChild, children } = useOrtuChildren()
   const [viewingId, setViewingId] = useState(null)
   const [showChildPicker, setShowChildPicker] = useState(false)
 
@@ -44,48 +49,13 @@ export default function OrtuPaymentHistory() {
     enabled: !!viewingId,
   })
 
-  // Dummy fallback items jika belum ada histori di database agar tampilan sesuai presisi Figma
-  const defaultItems = [
-    {
-      id: 'inv-1',
-      title: 'SPP September 2026',
-      paid_at: '05 Sep 2026',
-      amount: 800000,
-      iconType: 'calendar',
-    },
-    {
-      id: 'inv-2',
-      title: 'SPP Agustus 2026',
-      paid_at: '08 Agu 2026',
-      amount: 750000,
-      iconType: 'calendar',
-    },
-    {
-      id: 'inv-3',
-      title: 'Paket Seragam & Buku',
-      paid_at: '10 Jul 2026',
-      amount: 1500000,
-      iconType: 'shirt',
-    },
-    {
-      id: 'inv-4',
-      title: 'SPP Juli 2026',
-      paid_at: '06 Jul 2026',
-      amount: 800000,
-      iconType: 'calendar',
-    },
-    {
-      id: 'inv-5',
-      title: 'SPP Juni 2026',
-      paid_at: '08 Jun 2026',
-      amount: 750000,
-      iconType: 'book',
-    },
-  ]
-
-  const displayList = allPaidInvoices.length > 0 ? allPaidInvoices : defaultItems
-  const displayTotal = totalPaid > 0 ? totalPaid : 15600000
-  const displayCount = allPaidInvoices.length > 0 ? allPaidInvoices.length : 12
+  // Hanya data asli — dummy "SPP September 2026 / Budi Santoso" yang dulu
+  // ditampilkan saat list kosong sudah dihapus (setelah switch-anak diperbaiki,
+  // anak tanpa kuitansi akan menampilkan empty state jujur, bukan kuitansi
+  // milik anak lain / karangan).
+  const displayList = allPaidInvoices
+  const displayTotal = totalPaid
+  const displayCount = allPaidInvoices.length
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] pb-24 text-slate-800 antialiased relative selection:bg-blue-500 selection:text-white">
@@ -118,7 +88,7 @@ export default function OrtuPaymentHistory() {
                 className="h-8 w-8 ring-1 ring-slate-100"
               />
               <span className="text-xs font-bold text-slate-800">
-                {activeChild ? `${activeChild.name} - ${activeChild.grade_level || '4A'}` : 'Budi Santoso - 4A'}
+                {activeChild ? `${activeChild.name}${activeChild.classroom?.name ? ` - ${activeChild.classroom.name}` : ''}` : '-'}
               </span>
             </div>
             <ChevronDown className="h-4 w-4 text-slate-400" />
@@ -132,7 +102,7 @@ export default function OrtuPaymentHistory() {
                   key={c.id}
                   type="button"
                   onClick={() => {
-                    setActiveChild?.(c)
+                    setActiveChildId(c.id)
                     setShowChildPicker(false)
                   }}
                   className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
@@ -141,7 +111,7 @@ export default function OrtuPaymentHistory() {
                 >
                   <span className="flex items-center gap-2">
                     <ChildAvatar child={c} className="h-6 w-6" />
-                    <span>{c.name} - {c.grade_level}</span>
+                    <span>{c.name}{c.classroom?.name ? ` - ${c.classroom.name}` : ''}</span>
                   </span>
                   {activeChild?.id === c.id && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                 </button>
@@ -194,11 +164,15 @@ export default function OrtuPaymentHistory() {
                 <div key={i} className="h-20 animate-pulse rounded-[20px] bg-white shadow-sm" />
               ))}
             </div>
+          ) : displayList.length === 0 ? (
+            <div className="rounded-[20px] bg-white p-6 text-center shadow-sm">
+              <p className="text-xs text-slate-500">{t('ortu.paymentHistoryEmpty')}</p>
+            </div>
           ) : (
             displayList.map((item) => {
               const title = item.title || `SPP ${item.period || item.invoice_number}`
-              const paidDate = item.paid_at ? formatDateTime(item.paid_at) : '05 Sep 2026'
-              const amount = item.amount || 800000
+              const paidDate = item.paid_at ? formatDateTime(item.paid_at) : '-'
+              const amount = item.amount || 0
 
               // Determine icon
               let iconNode = (
@@ -278,15 +252,15 @@ export default function OrtuPaymentHistory() {
               <div className="mt-4 space-y-2.5 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>No. Kuitansi</span>
-                  <span className="font-bold text-slate-900">{receipt?.invoice_number || `KW-${viewingId}`}</span>
+                  <span className="font-bold text-slate-900">{receipt?.invoice_number || '-'}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Nama Siswa</span>
-                  <span className="font-semibold text-slate-900">{activeChild?.name || 'Budi Santoso'}</span>
+                  <span className="font-semibold text-slate-900">{receipt?.student_name || activeChild?.name || '-'}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Periode / Keterangan</span>
-                  <span className="font-semibold text-slate-900">{receipt?.period || 'SPP September 2026'}</span>
+                  <span className="font-semibold text-slate-900">{receipt?.period || '-'}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Status</span>
@@ -296,7 +270,7 @@ export default function OrtuPaymentHistory() {
                 <div className="flex justify-between text-slate-800">
                   <span className="font-bold">Total Pembayaran</span>
                   <span className="font-extrabold text-sm text-emerald-600">
-                    {formatCurrency(receipt?.amount || 800000)}
+                    {formatCurrency(receipt?.amount || 0)}
                   </span>
                 </div>
               </div>

@@ -71,29 +71,8 @@ export default function OrtuComplaints() {
 
   const complaintsList = data?.data ?? []
 
-  // Fallback demo items jika belum ada data di backend agar tampilan 1:1 persis Figma
-  const defaultComplaints = [
-    {
-      id: '0891',
-      ticket_no: '#TKT-0891',
-      created_at: '2026-10-03',
-      subject: 'Tukar Ukuran Seragam',
-      parent_name: 'Sandra Dewi',
-      student_info: 'Budi santoso 4A',
-      status: 'diproses',
-    },
-    {
-      id: '0752',
-      ticket_no: '#TKT-0752',
-      created_at: '2026-09-15',
-      subject: 'Konfirmasi Pembayaran SPP',
-      parent_name: 'Sandra Dewi',
-      student_info: 'Budi santoso 4A',
-      status: 'selesai',
-    },
-  ]
-
-  const itemsToDisplay = complaintsList.length > 0 ? complaintsList : defaultComplaints
+  // Tidak ada fallback demo — tampilkan empty state kalau memang belum ada pengaduan
+  const itemsToDisplay = complaintsList
 
   const filteredItems = itemsToDisplay.filter((item) => {
     if (filterTab === 'diproses') {
@@ -209,11 +188,11 @@ export default function OrtuComplaints() {
               const isResolved =
                 item.status === 'selesai' || item.status === 'resolved' || item.status === 'closed'
               const ticketNum = item.ticket_no || `#TKT-${item.id}`
-              const createdDate = item.created_at ? formatDate(item.created_at) : '03 Okt 2026'
-              const parentInfo =
-                item.parent_name || 'Sandra Dewi'
-              const studentName =
-                item.student_info || (item.student?.name ? `${item.student.name} ${item.student.grade_level ? item.student.grade_level : ''}` : 'Budi santoso 4A')
+              const createdDate = item.created_at ? formatDate(item.created_at) : '-'
+              const parentInfo = item.submitted_by?.name ?? item.parent_name ?? '-'
+              const studentName = item.student?.name
+                ? `${item.student.name}${item.student.classroom?.name ? ` ${item.student.classroom.name}` : ''}`
+                : item.student_info ?? '-'
 
               return (
                 <div

@@ -286,7 +286,7 @@ export default function OrtuInvoices() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (inv.id && !inv.id.startsWith("sample")) {
+                            if (inv.id && !String(inv.id).startsWith("sample")) {
                               navigate(`/ortu/invoices/${inv.id}`);
                             } else {
                               navigate("/ortu/invoices/sample");

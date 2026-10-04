@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -303,6 +303,25 @@ export default function OrtuInvoiceDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Feedback bayar — sebelumnya senyap: gagal (mis. tagihan terlambat)
+                maupun sukses tidak pernah memberi tahu user apa pun */}
+            {!isPaid && payMutation.isError && (
+              <div
+                role="alert"
+                className="rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700"
+              >
+                {payMutation.error?.message || t('common.errorGeneric')}
+              </div>
+            )}
+            {!isPaid && payMutation.isSuccess && payMutation.data?.token && (
+              <div className="rounded-[16px] border border-blue-200 bg-blue-50 px-4 py-3 text-[11px] leading-relaxed text-blue-900">
+                <p>{t('ortu.paymentMethodNotReady')}</p>
+                <code className="mt-1 block break-all rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-slate-800">
+                  {payMutation.data.token}
+                </code>
+              </div>
+            )}
 
             {/* Tombol Konfirmasi Pembayaran */}
             {!isPaid && (

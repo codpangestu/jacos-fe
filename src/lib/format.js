@@ -57,6 +57,16 @@ export function weekdayLong(date) {
   return WEEKDAYS_LONG[lang()][d.getDay()]
 }
 
+/**
+ * "Sekarang" dengan field lokal = wall-clock WIB (UTC+7) berapa pun timezone
+ * perangkat — konsisten dgn NFR §7.2 (aplikasi selalu berpikir WIB).
+ * Tanpa koreksi ganda: hasilnya dibaca pakai getter lokal seperti tanggal biasa.
+ */
+export function nowWib() {
+  const d = new Date()
+  return new Date(d.getTime() + d.getTimezoneOffset() * 60000 + 420 * 60000)
+}
+
 function pad2(n) {
   return String(n).padStart(2, '0')
 }
