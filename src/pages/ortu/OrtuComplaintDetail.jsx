@@ -13,7 +13,7 @@ import {
   ChevronRight,
   FileText
 } from 'lucide-react'
-import parentAvatar from '../../assets/picture/avatar-parent.png'
+import ParentAvatar from '../../components/ortu/ParentAvatar'
 import { apiGet, apiPost, storageUrl } from '../../lib/api'
 import { formatDateTime } from '../../lib/format'
 
@@ -237,11 +237,7 @@ export default function OrtuComplaintDetail() {
                           {r.body}
                           <p className="mt-1 text-right text-[10px] text-slate-400">{r.time}</p>
                         </div>
-                        <img
-                          src={parentAvatar}
-                          alt="Avatar Ortu"
-                          className="h-7 w-7 rounded-full object-cover shrink-0 mb-1"
-                        />
+                        <ParentAvatar className="h-7 w-7 mb-1" />
                       </div>
                     </div>
                   )

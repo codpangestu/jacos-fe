@@ -46,6 +46,7 @@ import OrtuAccount from './pages/ortu/OrtuAccount'
 import OrtuLeaveRequests from './pages/ortu/OrtuLeaveRequests'
 import OrtuComplaints from './pages/ortu/OrtuComplaints'
 import OrtuComplaintDetail from './pages/ortu/OrtuComplaintDetail'
+import OrtuAnnouncementHistory from './pages/ortu/OrtuAnnouncementHistory'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import PickupVerify from './pages/pickup/PickupVerify'
 import SelfAttendance from './pages/self-attendance/SelfAttendance'
@@ -115,7 +116,7 @@ export const router = createBrowserRouter([
   // notifikasi balasan Tata Usaha tetap mendarat di tiketnya.
   { path: '/ortu/complaints', element: <OrtuGuard requireChildSelection={false} requireConsent={false}><OrtuComplaints /></OrtuGuard> },
   { path: '/ortu/complaints/:id', element: <OrtuGuard requireChildSelection={false} requireConsent={false}><OrtuComplaintDetail /></OrtuGuard> },
-  { path: '/ortu/announcements', element: ortu(<AnnouncementHistory />) },
+  { path: '/ortu/announcements', element: ortu(<OrtuAnnouncementHistory />) },
   { path: '/staff/dashboard', element: staff(<StaffDashboard />) },
   { path: '/staff/pickup/verify', element: staff(<PickupVerify />) },
   { path: '/staff/attendance/self', element: staff(<SelfAttendance />) },

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarCheck, Car, CreditCard } from 'lucide-react'
 import { setActiveChildId } from '../../lib/activeChild'
-import { storageUrl } from '../../lib/api'
+import ChildAvatar from './ChildAvatar'
 
 const UNPAID_STATUSES = ['belum_bayar', 'terlambat']
 
@@ -56,21 +56,7 @@ export default function ChildOverviewCard({ child }) {
         className="flex w-full items-center justify-between gap-2 text-left"
       >
         <div className="flex min-w-0 items-center gap-2.5">
-          {child.photo_path ? (
-            <img
-              src={storageUrl(child.photo_path)}
-              alt={child.name}
-              className="h-9 w-9 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                child.gender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-primary-300/15 text-primary-300'
-              }`}
-            >
-              {initials}
-            </span>
-          )}
+          <ChildAvatar child={child} className="h-9 w-9" usePhotoIfAvailable />
           <div className="min-w-0">
             <p className="truncate text-[13px] font-bold text-text-primary">{child.name}</p>
             <p className="truncate text-[11px] text-text-secondary">

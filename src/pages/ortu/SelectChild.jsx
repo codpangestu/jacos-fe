@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import logo from '../../assets/guide/logo baru.svg'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { setActiveChildId } from '../../lib/activeChild'
+import ChildAvatar from '../../components/ortu/ChildAvatar'
 
 export default function SelectChild() {
   const { t } = useTranslation()
@@ -34,13 +35,7 @@ export default function SelectChild() {
                 onClick={() => choose(c.id)}
                 className="flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:border-primary-300 hover:bg-primary-300/5"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-300/12 text-sm font-semibold text-primary-300">
-                  {c.name
-                    .split(' ')
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join('')}
-                </span>
+                <ChildAvatar child={c} className="h-11 w-11" usePhotoIfAvailable />
                 <span>
                   <span className="block text-sm font-semibold text-text-primary">{c.name}</span>
                   <span className="block text-xs text-text-secondary">{c.classroom?.name}</span>

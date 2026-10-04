@@ -15,7 +15,7 @@ import {
   Receipt,
   X
 } from 'lucide-react'
-import santosoAvatar from '../../assets/picture/avatar-santoso.png'
+import ChildAvatar from '../../components/ortu/ChildAvatar'
 import useOrtuChildren from '../../hooks/useOrtuChildren'
 import { apiGet } from '../../lib/api'
 import { formatCurrency, formatDateTime } from '../../lib/format'
@@ -113,10 +113,9 @@ export default function OrtuPaymentHistory() {
             className="flex w-full items-center justify-between rounded-full bg-white px-3.5 py-2 shadow-sm border border-slate-100 transition hover:bg-slate-50"
           >
             <div className="flex items-center gap-2.5">
-              <img
-                src={santosoAvatar}
-                alt="Avatar Siswa"
-                className="h-8 w-8 rounded-full object-cover border border-slate-100"
+              <ChildAvatar
+                child={activeChild}
+                className="h-8 w-8 ring-1 ring-slate-100"
               />
               <span className="text-xs font-bold text-slate-800">
                 {activeChild ? `${activeChild.name} - ${activeChild.grade_level || '4A'}` : 'Budi Santoso - 4A'}
@@ -140,7 +139,10 @@ export default function OrtuPaymentHistory() {
                     activeChild?.id === c.id ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <span>{c.name} - {c.grade_level}</span>
+                  <span className="flex items-center gap-2">
+                    <ChildAvatar child={c} className="h-6 w-6" />
+                    <span>{c.name} - {c.grade_level}</span>
+                  </span>
                   {activeChild?.id === c.id && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                 </button>
               ))}

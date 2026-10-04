@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   CreditCard,
   FileText,
+  Megaphone,
   Users,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -23,11 +24,9 @@ import { getUser } from "../../lib/auth";
 import bannerImg from "../../assets/guide/banner.png";
 import banner1 from "../../assets/guide/banner (1).png";
 import banner2 from "../../assets/guide/banner (2).png";
-import boyVector from "../../assets/picture/boy.svg";
-import girlVector from "../../assets/picture/girl.svg";
-import avatarParentImg from "../../assets/picture/avatar-parent.png";
-import mascotFoxBoy from "../../assets/picture/mascot-fox-boy.png";
-import avatarChildSmall from "../../assets/picture/avatar-child-small.png";
+import ChildAvatar from "../../components/ortu/ChildAvatar";
+import ParentAvatar from "../../components/ortu/ParentAvatar";
+import { getChildMascot, getChildGender } from "../../lib/childProfile";
 
 /* ─────────────────────────────────────────────────────────────
    BANNER SLIDESHOW
@@ -124,23 +123,6 @@ function QrPlaceholder({ size = 44 }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   CHILD AVATAR
-───────────────────────────────────────────────────────────── */
-function ChildAvatar({ child, className }) {
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E6F2FF] ${className}`}
-    >
-      <img
-        src={avatarChildSmall || (child?.gender === "female" ? girlVector : boyVector)}
-        alt=""
-        className="h-full w-full object-cover"
-        draggable="false"
-      />
-    </span>
-  );
-}
 
 /* ═════════════════════════════════════════════════════════════
    PAGE
@@ -190,6 +172,12 @@ export default function OrtuDashboard() {
   });
   const upcomingAgenda = calendarData?.holidays ?? [];
 
+  const { data: announcementsData } = useQuery({
+    queryKey: ["announcements", "feed"],
+    queryFn: () => apiGet("/api/announcements"),
+  });
+  const latestAnnouncements = announcementsData?.announcements ?? [];
+
   if (children.length === 0) return null;
 
   /* ── Weekstrip ── */
@@ -225,8 +213,6 @@ export default function OrtuDashboard() {
   }
 
   const firstName = (user?.name ?? "").split(" ")[0];
-  const initials = (user?.name ?? "U")
-    .split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
   const quickActions = [
     {
@@ -281,20 +267,8 @@ export default function OrtuDashboard() {
         ══════════════════════════════ */}
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            {/* Avatar parent 54x54 */}
-            <div className="relative flex h-[54px] w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/70 shadow-sm ring-2 ring-white/90">
-              {avatarParentImg ? (
-                <img
-                  src={avatarParentImg}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="font-heading text-lg font-bold text-[#0F457F]">
-                  {initials}
-                </span>
-              )}
-            </div>
+            {/* Avatar parent 54x54: vektor laki-laki / wanita sesuai gender */}
+            <ParentAvatar user={user} childrenList={children} className="h-[54px] w-[54px]" />
 
             <div className="min-w-0 flex-1">
               {/* FIX: truncate pada nama mencegah overflow di nama panjang */}
@@ -474,12 +448,12 @@ export default function OrtuDashboard() {
               minHeight: "124px",
             }}
           >
-            {/* Mascot — lebar fixed 102px sesuai Figma */}
+            {/* Mascot — lebar fixed 102px sesuai Figma (Dinamis: rubah cowo / rubah cewe) */}
             <div className="relative flex w-[102px] shrink-0 items-center justify-center p-2">
               <div className="absolute inset-2 rounded-[14px] bg-[#F7D1A2]" />
               <img
-                src={mascotFoxBoy}
-                alt=""
+                src={getChildMascot(currentChild)}
+                alt={getChildGender(currentChild) === "female" ? "Maskot Siswi JACOS" : "Maskot Siswa JACOS"}
                 className="relative z-10 h-[98px] w-auto object-contain"
                 draggable="false"
               />
@@ -507,7 +481,7 @@ export default function OrtuDashboard() {
 
               {/* NIS */}
               <span className="text-[11.5px] font-semibold text-[#111827]">
-                NIS: {currentChild?.nis ?? "1029385"}
+                NIS: {currentChild?.nis ?? "-"}
               </span>
 
               {/* Tombol aksi */}
@@ -561,7 +535,7 @@ export default function OrtuDashboard() {
                   {t("ortu.authorizedPickupsShort")}
                 </p>
                 <p className="truncate text-[11px] font-bold text-[#0F172A]">
-                  {activePickups[0]?.name ?? "Bpk. Santoso"}
+                  {activePickups[0]?.name ?? t("ortu.noPickupYet")}
                 </p>
                 <p className="mt-0.5 text-[8px] leading-[10px] text-[#334155] line-clamp-2">
                   {t("ortu.qrHint")}
@@ -606,38 +580,59 @@ export default function OrtuDashboard() {
                     );
                   })
                 ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#F3E8FF]">
-                        <CalendarDays size={12} className="text-[#9333EA]" />
-                      </span>
-                      <div className="min-w-0 flex flex-col">
-                        <span className="truncate text-[9px] font-bold text-[#111827]">
-                          Jumat, 27 Nov
-                        </span>
-                        <span className="truncate text-[8px] text-[#6B7280]">
-                          Pengambilan Rapor
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#EFF6FF]">
-                        <CalendarDays size={12} className="text-[#2563EB]" />
-                      </span>
-                      <div className="min-w-0 flex flex-col">
-                        <span className="truncate text-[9px] font-bold text-[#111827]">
-                          Senin, 30 Nov
-                        </span>
-                        <span className="truncate text-[8px] text-[#6B7280]">
-                          Libur Semester
-                        </span>
-                      </div>
-                    </div>
-                  </>
+                  <p className="py-2 text-center text-[9px] text-[#9CA3AF]">
+                    {t("ortu.agendaEmpty")}
+                  </p>
                 )}
               </div>
             </div>
           </div>
+
+          {/* ── 6. PENGUMUMAN SEKOLAH ── */}
+          {latestAnnouncements.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-[20px] bg-white p-3.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#EFF6FF] text-[#037EFE]">
+                    <Megaphone size={14} />
+                  </span>
+                  <h2 className="font-heading text-[12px] font-bold text-[#111827]">
+                    Pengumuman Sekolah
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/ortu/announcements")}
+                  className="flex items-center gap-0.5 text-[11px] font-bold text-[#037EFE] hover:underline border-0 bg-transparent cursor-pointer p-0"
+                >
+                  <span>Lihat Semua</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5 pt-1">
+                {latestAnnouncements.slice(0, 2).map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => navigate("/ortu/announcements")}
+                    className="flex flex-col gap-1 rounded-[12px] bg-[#F8FAFC] p-2.5 transition hover:bg-[#F1F5F9] cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[11.5px] font-bold text-[#111827]">
+                        {item.title}
+                      </span>
+                      <span className="shrink-0 text-[9.5px] text-[#9CA3AF]">
+                        {formatDate(item.created_at, { withYear: false })}
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-[#4B5563] line-clamp-1">
+                      {item.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

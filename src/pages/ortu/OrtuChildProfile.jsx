@@ -15,10 +15,8 @@ import ResponsiveShell from "../../layouts/ResponsiveShell";
 import useOrtuChildren from "../../hooks/useOrtuChildren";
 import { apiGet } from "../../lib/api";
 import { todayInputValue } from "../../lib/format";
-import avatarStudent3D from "../../assets/picture/avatar-student-3d.png";
+import ChildAvatar from "../../components/ortu/ChildAvatar";
 import attendanceStampIllustration from "../../assets/picture/illustration-attendance-stamp.png";
-import boyVector from "../../assets/picture/boy.svg";
-import girlVector from "../../assets/picture/girl.svg";
 
 const ATTENDANCE_CODES = ["hadir", "izin", "sakit", "alpa"];
 
@@ -84,18 +82,12 @@ export default function OrtuChildProfile() {
           {/* ── 1. CARD PROFIL SISWA (358x116) ── */}
           <div className="flex items-center gap-3.5 rounded-[20px] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
             {/* Avatar 76x76 */}
-            <div className="relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-full bg-[#E0E7FF] ring-2 ring-white shadow-sm">
-              <img
-                src={avatarStudent3D}
-                onError={(e) => {
-                  e.currentTarget.src =
-                    student?.gender === "female" ? girlVector : boyVector;
-                }}
-                alt={student?.name ?? activeChild.name}
-                className="h-full w-full object-cover"
-                draggable="false"
-              />
-            </div>
+            <ChildAvatar
+              child={student || activeChild}
+              className="h-[76px] w-[76px] ring-2 ring-white shadow-sm"
+              imgClassName="h-full w-full object-cover"
+              usePhotoIfAvailable
+            />
 
             {/* Info Siswa */}
             <div className="flex min-w-0 flex-1 flex-col justify-center">

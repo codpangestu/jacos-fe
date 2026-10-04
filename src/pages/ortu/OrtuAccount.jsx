@@ -10,6 +10,7 @@ import {
   HelpCircle,
   Lock,
   LogOut,
+  Megaphone,
   MessageSquare,
   Phone,
   QrCode,
@@ -24,7 +25,8 @@ import useDarkMode from "../../hooks/useDarkMode";
 import { apiGet, apiPost, logout as apiLogout, ApiError } from "../../lib/api";
 import { getUser, clearUser } from "../../lib/auth";
 import { setLanguage } from "../../i18n";
-import avatarParentImg from "../../assets/picture/avatar-parent.png";
+import ParentAvatar from "../../components/ortu/ParentAvatar";
+import { getParentRoleLabel } from "../../lib/parentProfile";
 
 export default function OrtuAccount() {
   const { t, i18n } = useTranslation();
@@ -97,12 +99,13 @@ export default function OrtuAccount() {
     setLanguage(nextLang);
   };
 
+  const roleLabel = getParentRoleLabel(user, children);
   const childrenSummary =
     children.length > 0
-      ? `Ibu dari ${children
+      ? `${roleLabel} dari ${children
           .map((c) => `${c.name}${c.classroom?.name ? ` (${c.classroom.name})` : ""}`)
           .join(" & ")}`
-      : "Ibu dari Budi (4A) & Siska (1B)";
+      : `${roleLabel} dari Budi (4A) & Siska (1B)`;
 
   return (
     <ResponsiveShell headerVariant="none" fullBleed showSearch={false}>
@@ -137,14 +140,7 @@ export default function OrtuAccount() {
           >
             {/* Left: Avatar + Info */}
             <div className="flex items-center gap-3 min-w-0">
-              <div className="relative h-[54px] w-[54px] shrink-0 overflow-hidden rounded-full bg-white/80 ring-2 ring-white shadow-sm">
-                <img
-                  src={avatarParentImg}
-                  alt={user?.name ?? "Orang Tua"}
-                  className="h-full w-full object-cover"
-                  draggable="false"
-                />
-              </div>
+              <ParentAvatar user={user} childrenList={children} className="h-[54px] w-[54px]" />
 
               <div className="flex min-w-0 flex-col leading-tight">
                 <span className="truncate font-heading text-[15px] font-bold text-[#111827]">
@@ -401,6 +397,30 @@ export default function OrtuAccount() {
                     </span>
                     <span className="text-[10px] text-[#6B7280]">
                       Dapatkan bantuan langsung
+                    </span>
+                  </div>
+                </div>
+
+                <ChevronRight size={14} className="text-[#9CA3AF]" />
+              </div>
+
+              <div className="h-px w-full bg-[#F3F4F6] my-1.5" />
+
+              {/* Item 3: Riwayat Pengumuman Sekolah */}
+              <div
+                onClick={() => navigate("/ortu/announcements")}
+                className="flex items-center justify-between py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[#EFF6FF] text-[#037EFE]">
+                    <Megaphone size={16} strokeWidth={2} />
+                  </span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="font-heading text-[12px] font-bold text-[#111827]">
+                      Riwayat Pengumuman
+                    </span>
+                    <span className="text-[10px] text-[#6B7280]">
+                      Lihat arsip dan info penting sekolah
                     </span>
                   </div>
                 </div>
